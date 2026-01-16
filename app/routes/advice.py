@@ -2,18 +2,28 @@
 API routes for the advice columnist.
 """
 
+import os
 import time
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Form
 from fastapi.responses import HTMLResponse
+from openai import OpenAI
 
 from models.openai_backend import generate_answer, BASE_MODEL, FINE_TUNED_MODEL
+from models.prompts import QUESTION_SCREENING_PROMPT
 from qa.mvp_utils import extract_revised_response
 
 router = APIRouter(tags=["advice"])
 
 MAX_QUESTION_LENGTH = 4000
 REQUEST_TIMEOUT = 45  # seconds
+
+# Error message for off-topic questions
+OFF_TOPIC_ERROR = (
+    "This question doesn't appear to be about interpersonal or relationship matters. "
+    "Please submit a question about relationships, family, friends, workplace dynamics, "
+    "or other interpersonal topics."
+)
 
 
 class AdviceRequest(BaseModel):
@@ -51,6 +61,37 @@ def format_prompt_for_v3(question: str, draft_response: str) -> str:
         question = question[9:].strip()
 
     return f"QUESTION: {question}\n\nDRAFT_RESPONSE: {draft_response}"
+
+
+def validate_question_relevance(question: str) -> bool:
+    """
+    Check if the question is about interpersonal/relationship matters.
+
+    Args:
+        question: The user's question
+
+    Returns:
+        True if the question is relevant, False otherwise
+
+    Raises:
+        RuntimeError: If the screening call fails
+    """
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+    try:
+        response = client.chat.completions.create(
+            model=BASE_MODEL,
+            messages=[
+                {"role": "system", "content": QUESTION_SCREENING_PROMPT},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.0,  # Deterministic for classification
+            max_tokens=10,  # Only need one word
+        )
+        result = response.choices[0].message.content.strip().upper()
+        return result == "RELEVANT"
+    except Exception as e:
+        raise RuntimeError(f"Failed to validate question: {e}")
 
 
 def call_base_model(question: str, max_retries: int = 2) -> str:
@@ -113,14 +154,24 @@ async def get_advice(request: AdviceRequest) -> AdviceResponse:
     """
     Get advice for an interpersonal question.
 
-    This endpoint chains two LLM calls:
-    1. Base model generates a draft response
-    2. Fine-tuned model revises and improves the response
+    This endpoint:
+    1. Validates the question is about interpersonal matters
+    2. Base model generates a draft response
+    3. Fine-tuned model revises and improves the response
     """
     question = request.question.strip()
 
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    # Validate question is about interpersonal matters (before timing starts)
+    try:
+        is_relevant = validate_question_relevance(question)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    if not is_relevant:
+        raise HTTPException(status_code=400, detail=OFF_TOPIC_ERROR)
 
     start_time = time.time()
 

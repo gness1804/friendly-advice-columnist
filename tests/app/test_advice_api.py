@@ -71,10 +71,12 @@ class TestIndexPage:
 class TestAdviceAPIEndpoint:
     """Tests for the JSON advice API endpoint."""
 
+    @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
     @patch("app.routes.advice.call_fine_tuned_model")
-    def test_advice_endpoint_success(self, mock_fine_tuned, mock_base):
+    def test_advice_endpoint_success(self, mock_fine_tuned, mock_base, mock_validate):
         """Advice endpoint should return a response for valid questions."""
+        mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
         mock_fine_tuned.return_value = MOCK_V3_RESPONSE
 
@@ -109,10 +111,12 @@ class TestAdviceAPIEndpoint:
 class TestAdviceHTMLEndpoint:
     """Tests for the HTML advice endpoint (HTMX)."""
 
+    @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
     @patch("app.routes.advice.call_fine_tuned_model")
-    def test_advice_html_endpoint_success(self, mock_fine_tuned, mock_base):
+    def test_advice_html_endpoint_success(self, mock_fine_tuned, mock_base, mock_validate):
         """HTML endpoint should return HTML fragment for valid questions."""
+        mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
         mock_fine_tuned.return_value = MOCK_V3_RESPONSE
 
@@ -132,9 +136,11 @@ class TestAdviceHTMLEndpoint:
         # FastAPI returns 422 for validation errors even with HTML
         assert response.status_code == 422
 
+    @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
-    def test_advice_html_endpoint_api_error(self, mock_base):
+    def test_advice_html_endpoint_api_error(self, mock_base, mock_validate):
         """HTML endpoint should return error HTML when API fails."""
+        mock_validate.return_value = True
         mock_base.side_effect = RuntimeError("API connection failed")
 
         response = client.post(
@@ -149,10 +155,12 @@ class TestAdviceHTMLEndpoint:
 class TestInputValidation:
     """Tests for input validation."""
 
+    @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
     @patch("app.routes.advice.call_fine_tuned_model")
-    def test_question_with_special_characters(self, mock_fine_tuned, mock_base):
+    def test_question_with_special_characters(self, mock_fine_tuned, mock_base, mock_validate):
         """Questions with special characters should be handled."""
+        mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
         mock_fine_tuned.return_value = MOCK_V3_RESPONSE
 
@@ -163,10 +171,12 @@ class TestInputValidation:
 
         assert response.status_code == 200
 
+    @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
     @patch("app.routes.advice.call_fine_tuned_model")
-    def test_question_with_newlines(self, mock_fine_tuned, mock_base):
+    def test_question_with_newlines(self, mock_fine_tuned, mock_base, mock_validate):
         """Questions with newlines should be handled."""
+        mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
         mock_fine_tuned.return_value = MOCK_V3_RESPONSE
 
@@ -187,3 +197,65 @@ class TestInputValidation:
 
         request = AdviceRequest(question=max_question)
         assert len(request.question) == 4000
+
+
+class TestQuestionScreening:
+    """Tests for question relevance screening."""
+
+    @patch("app.routes.advice.validate_question_relevance")
+    def test_off_topic_question_rejected(self, mock_validate):
+        """Off-topic questions should be rejected with a helpful error."""
+        mock_validate.return_value = False
+
+        response = client.post(
+            "/api/advice",
+            json={"question": "How do I fix my car's transmission?"},
+        )
+
+        assert response.status_code == 400
+        assert "interpersonal" in response.json()["detail"].lower()
+
+    @patch("app.routes.advice.validate_question_relevance")
+    def test_off_topic_question_html_endpoint(self, mock_validate):
+        """Off-topic questions via HTML endpoint should show error."""
+        mock_validate.return_value = False
+
+        response = client.post(
+            "/api/advice/html",
+            data={"question": "What is the capital of France?"},
+        )
+
+        assert response.status_code == 400
+        assert "Error" in response.text
+        assert "interpersonal" in response.text.lower()
+
+    @patch("app.routes.advice.validate_question_relevance")
+    @patch("app.routes.advice.call_base_model")
+    @patch("app.routes.advice.call_fine_tuned_model")
+    def test_relevant_question_processed(self, mock_fine_tuned, mock_base, mock_validate):
+        """Relevant questions should be processed normally."""
+        mock_validate.return_value = True
+        mock_base.return_value = MOCK_DRAFT_RESPONSE
+        mock_fine_tuned.return_value = MOCK_V3_RESPONSE
+
+        response = client.post(
+            "/api/advice",
+            json={"question": "My mother-in-law keeps criticizing my parenting. What should I do?"},
+        )
+
+        assert response.status_code == 200
+        mock_validate.assert_called_once()
+        mock_base.assert_called_once()
+
+    @patch("app.routes.advice.validate_question_relevance")
+    def test_validation_error_handled(self, mock_validate):
+        """Validation errors should be handled gracefully."""
+        mock_validate.side_effect = RuntimeError("API error during validation")
+
+        response = client.post(
+            "/api/advice",
+            json={"question": "How do I talk to my sister?"},
+        )
+
+        assert response.status_code == 503
+        assert "error" in response.json()["detail"].lower()
