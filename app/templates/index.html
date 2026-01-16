@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <form id="advice-form"
+          hx-post="/api/advice/html"
+          hx-target="#response-area"
+          hx-swap="innerHTML"
+          hx-indicator="#loading-indicator">
+
+        <label for="question" class="block text-text mb-2 font-medium">
+            What's on your mind?
+        </label>
+
+        <textarea
+            id="question"
+            name="question"
+            class="input-field"
+            rows="6"
+            maxlength="{{ max_chars }}"
+            placeholder="Describe your situation or ask a question about relationships, family, friends, or other interpersonal matters..."
+            required
+            oninput="updateCharCount()"
+        ></textarea>
+
+        <div class="flex justify-between items-center mt-2 mb-4">
+            <span id="char-count" class="text-text-dark text-sm">
+                0 / {{ max_chars }} characters
+            </span>
+        </div>
+
+        <button type="submit" class="btn-primary w-full" id="submit-btn">
+            Get Advice
+        </button>
+    </form>
+</div>
+
+<!-- Loading indicator -->
+<div id="loading-indicator" class="htmx-indicator mt-6">
+    <div class="card text-center">
+        <div class="flex items-center justify-center space-x-3">
+            <svg class="loading-spinner h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-text-muted">Generating thoughtful advice...</span>
+        </div>
+        <p class="text-text-dark text-sm mt-3">This may take up to 45 seconds</p>
+    </div>
+</div>
+
+<!-- Response area -->
+<div id="response-area" class="mt-6"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const maxChars = {{ max_chars }};
+    const textarea = document.getElementById('question');
+    const charCount = document.getElementById('char-count');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function updateCharCount() {
+        const count = textarea.value.length;
+        charCount.textContent = `${count} / ${maxChars} characters`;
+
+        if (count > maxChars * 0.9) {
+            charCount.classList.add('text-primary');
+            charCount.classList.remove('text-text-dark');
+        } else {
+            charCount.classList.remove('text-primary');
+            charCount.classList.add('text-text-dark');
+        }
+    }
+
+    // Disable submit button while request is in flight
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        if (evt.detail.elt.id === 'advice-form') {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Thinking...';
+        }
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.elt.id === 'advice-form') {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Get Advice';
+        }
+    });
+
+    // Allow Ctrl+Enter to submit
+    textarea.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            document.getElementById('advice-form').requestSubmit();
+        }
+    });
+</script>
+{% endblock %}

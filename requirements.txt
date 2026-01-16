@@ -1,5 +1,6 @@
 # Core ML/AI dependencies
 torch>=2.0.0
+openai>=1.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
 numpy>=1.24.0
@@ -10,10 +11,18 @@ transformers>=4.35.0  # HuggingFace transformers for pre-trained models (GPT-2, 
 # Visualization and plotting
 matplotlib>=3.7.0
 
+# Web framework (FastAPI + HTMX stack)
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.6
+tomli>=2.0.0;python_version<"3.11"  # Backport of tomllib for Python < 3.11
+
 # Development and code quality tools
 ruff>=0.1.0
 pytest>=7.4.0
 pre-commit>=3.4.0
+httpx>=0.26.0  # For testing FastAPI
 
 # Optional: Additional useful packages for ML development
 # Uncomment as needed:

@@ -201,3 +201,9 @@ temp/
 checkpoints/
 checkpoints/**/*.pt
 !checkpoints/.gitkeep
+
+# Tailwind CSS standalone CLI binary
+tailwindcss
+
+# Outputs directory
+outputs/

@@ -3,15 +3,15 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.bump2version]
-current_version = "0.1.6"
+current_version = "1.0.0"
 commit = true
 tag = true
 files = ["pyproject.toml"]
 
 [project]
-name = "build-llm-karpathy"
-version = "0.1.6"
-description = "Implementation of a transformer-based language model following Andrej Karpathy's approach"
+name = "friendly-advice-columnist"
+version = "1.0.0"
+description = "AI-powered friendly advice columnist."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
