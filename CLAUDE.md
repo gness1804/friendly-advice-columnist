@@ -4,9 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Educational implementation of transformer-based language models following Andrej Karpathy's tutorial. Progresses from simple bigram models to full transformers with attention mechanisms. Includes GPT-2 fine-tuning capabilities with optional LoRA adapters.
+An AI-powered advice columnist that provides thoughtful, compassionate responses to interpersonal questions. The system uses a two-stage LLM architecture: a base LLM generates an initial draft, then a fine-tuned model (trained on curated advice column examples) refines it into a polished response.
 
 ## Common Commands
+
+### Running the Advice Columnist
+
+```bash
+# Ask a question (MVP)
+python qa/advice_mvp.py --question "Your question here"
+```
 
 ### Training
 
@@ -53,7 +60,7 @@ ruff format .
 
 ## Architecture
 
-### Core Model Components
+### Project Structure
 
 ```
 training.py              # Main entry point - handles fresh/resume training
@@ -72,13 +79,16 @@ training.py              # Main entry point - handles fresh/resume training
 │   └── self_attention_classes.py  # Head and MultiHeadAttention
 ├── feed_forward/
 │   └── feed_forward_classes.py    # FeedForward MLP
-└── lora/
-    └── lora_module.py   # LoRA adapters for efficient fine-tuning
+├── lora/
+│   └── lora_module.py   # LoRA adapters for efficient fine-tuning
+└── qa/
+    ├── advice_mvp.py    # MVP advice columnist interface
+    └── run_inference.py # General inference script
 ```
 
-### Transformer Architecture
+### Model Architecture
 
-Pre-norm architecture: `LayerNorm → Attention/FFN → Residual`
+The transformer uses pre-norm architecture: `LayerNorm → Attention/FFN → Residual`
 
 - **Block**: Combines MultiHeadAttention + FeedForward with residual connections
 - **MultiHeadAttention**: Runs multiple attention heads in parallel, concatenates outputs
@@ -93,9 +103,9 @@ Pre-norm architecture: `LayerNorm → Attention/FFN → Residual`
 4. Creates/loads model (BigramLanguageModel or GPT2Wrapper)
 5. Training loop with periodic evaluation and checkpointing
 
-### Data Sources
+### Training Data
 
-Training data lives in `sources/` with markdown format using Q&A structure. Data preparation scripts in `sources/scripts/` handle:
+Training data lives in `sources/` with markdown format using Q&A structure. The data consists of curated advice column examples. Data preparation scripts in `sources/scripts/` handle:
 - Reddit data collection and cleanup
 - Carolyn Hax chat merging
 - Training data normalization
@@ -104,7 +114,7 @@ Training data lives in `sources/` with markdown format using Q&A structure. Data
 
 ### Tensor Shape Documentation
 
-Always document tensor shapes using `(B, T, C)` notation:
+Document tensor shapes using `(B, T, C)` notation:
 - **B**: Batch size
 - **T**: Time/sequence length
 - **C**: Channels/embedding dimension
@@ -132,3 +142,7 @@ x, y = x.to(device), y.to(device)
 - `models/bigram_lm_v2.py`: Main transformer model architecture
 - `docs/FINETUNING_GUIDE.md`: LoRA and fine-tuning strategies
 - `docs/CHECKPOINT_USAGE.md`: Checkpoint management
+
+## Origins
+
+The core transformer implementation originated from [Andrej Karpathy's tutorial](https://www.youtube.com/watch?v=kCc8FmEb1nY) on building language models from scratch. The project has since evolved into a specialized application for generating advice column responses.
