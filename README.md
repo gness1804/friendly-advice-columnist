@@ -1,16 +1,27 @@
-# Build LLM - Andrej Karpathy Tutorial
+# Friendly Advice Columnist
 
-This project is a hands-on implementation of a language model following Andrej Karpathy's tutorial video on building Large Language Models (LLMs) from scratch (https://www.youtube.com/watch?v=kCc8FmEb1nY&t=1094s). The goal is to understand the fundamental concepts behind LLMs by implementing a simple bigram character-level language model using PyTorch.
+An AI-powered advice columnist that takes interpersonal questions and provides thoughtful, compassionate responses with a morally grounded perspective.
 
-## Project Purpose
+## Overview
 
-This is a learning project designed to:
-- Understand the core mechanics of language models
-- Learn how neural networks predict the next token in a sequence
-- Grasp fundamental concepts like embeddings, loss functions, backpropagation, and optimization
-- Build intuition for how modern LLMs work, starting from the simplest possible architecture
+This project is an AI advice columnist designed to help users navigate interpersonal challenges. It provides answers that are:
 
-The implementation uses Shakespeare's text as training data to (ideally) generate Shakespeare-like text after training.
+- **Compassionate**: Understanding and empathetic toward the person asking
+- **Calm**: Measured and thoughtful rather than reactive
+- **Morally focused**: Grounded in ethical considerations while remaining non-judgmental
+
+## How It Works
+
+The system uses a two-stage LLM architecture:
+
+1. **Base LLM**: Consumes the original question and generates an initial draft response
+2. **Fine-tuned LLM**: A model fine-tuned on curated personal advice column examples that refines the draft into a polished final answer
+
+This two-stage approach combines the broad knowledge and reasoning capabilities of a general-purpose LLM with the specific tone and style learned from high-quality advice column examples.
+
+## Project Status
+
+This is currently a **backend-only application**. A frontend interface is planned for future development.
 
 ## Prerequisites
 
@@ -24,143 +35,76 @@ The implementation uses Shakespeare's text as training data to (ideally) generat
    pip install -r requirements.txt
    ```
 
-2. **Ensure training data exists:**
-   The project expects a text file at `sources/shakespeare.txt`. This file should contain the Shakespeare text corpus used for training. This file exists in the directory previously noted or it can be downloaded at https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt using your favorite document download method. 
+2. **Prepare training data:**
+   Training data should be placed in the `sources/` directory in markdown format using Q&A structure.
 
-## Running the Model
+## Usage
 
-To train the model and generate text, simply run:
+### Basic Usage
 
 ```bash
+# Pose a question to the application. The application then gives you an answer based on the processing of both LLMs.
+python qa/advice_mvp.py --question <question>
+```
+
+### Training
+
+*(NOTE: These steps are only for the from-scratch model or GPT-2. GPT-4.1-mini, which is the model that's used in the current MVP, does not follow the steps in this section as it has its own built-in training.)*
+
+```bash
+# Train from scratch
 python training.py
+
+# GPT-2 fine-tuning
+MODEL_TYPE=gpt2 python training.py
+
+# Resume from checkpoint
+CHECKPOINT_PATH=checkpoints/checkpoint_step_5000.pt RESUME_STEPS=5000 python training.py
 ```
 
-**What happens when you run it:**
-1. Loads Shakespeare text and creates character-level vocabulary
-2. Splits data into training (90%) and validation (10%) sets
-3. Trains a bigram language model for 10,000 steps (adjustable)
-4. Prints the final loss value
-5. Generates and prints 300 characters (adjustable) of Shakespeare-like text (in theory...)
+### Inference
 
-**Output example:**
-```
-----
-End of training. Loss: [some value]
-[Generated Shakespeare-like text...]
+```bash
+# Run inference with a checkpoint
+python qa/run_inference.py --prompt 'QUESTION: ...' --checkpoint path/to/checkpoint.pt --version v1
+
+# Run with OpenAI backend
+python qa/run_inference.py --prompt 'QUESTION: ...' --model_type openai_backend --version v1
+# For version 3: python qa/run_inference.py --prompt '...' --model_type openai_backend --version v3
 ```
 
-## Technical Overview
+### Linting
 
-### Architecture: Bigram Language Model
-
-This is the **simplest** form of a language model. It predicts the next character based only on the current character, using a lookup table (embedding matrix).
-
-**Key components:**
-
-1. **Token Embedding Table** (`nn.Embedding(vocab_size, vocab_size)`)
-   - A lookup table where each character maps to prediction scores for the next character
-   - This is the model's "intelligence" - what it learns during training
-
-2. **Forward Pass**
-   - Takes input tokens (characters)
-   - Looks up predictions from the embedding table
-   - Computes loss by comparing predictions to actual next characters
-
-3. **Text Generation**
-   - Starts with a seed token (zero/null character)
-   - Predicts next token using the model
-   - Samples from the probability distribution
-   - Appends to sequence and repeats
-
-4. **Training Loop**
-   - Gets batches of training data
-   - Computes predictions and loss
-   - Backpropagates gradients (`loss.backward()`)
-   - Updates parameters (`optimizer.step()`)
-   - Repeats for 10,000 iterations
-
-### Hyperparameters
-
-- **Block size**: 8 (sequence length)
-- **Batch size**: 32 (number of sequences processed in parallel)
-- **Training steps**: 10,000
-- **Learning rate**: 1e-3 (0.001)
-- **Optimizer**: AdamW
-
-### How It Works
-
+```bash
+ruff check .
+ruff format .
 ```
-Input: "hell"
-Model looks up: 'l' -> [probability distribution for next char]
-Samples: 'o'
-Output: "hello"
-```
-
-The model learns which characters typically follow other characters by seeing many examples from Shakespeare's text.
 
 ## Project Structure
 
 ```
-build_llm_karpathy/
-├── README.md           # This file
-├── training.py         # Main training script with model implementation
-├── notes.md            # Detailed learning notes and explanations
-├── requirements.txt    # Python dependencies
-├── docs/               # Documentation (see docs/README.md for index)
-│   ├── lora/          # LoRA fine-tuning documentation
-│   ├── gpt2/          # GPT-2 integration documentation
-│   └── *.md           # General guides
-├── sources/
-│   └── shakespeare.txt # Training data
-└── WARP.md            # Development environment setup
+friendly-advice-columnist/
+├── README.md              # This file
+├── CLAUDE.md              # Development guidance
+├── training.py            # Main training script
+├── training/              # Training utilities
+│   ├── config.py          # Configuration management
+│   ├── data.py            # Data loading and processing
+│   └── checkpointing.py   # Checkpoint management
+├── models/                # Model implementations
+│   ├── bigram_lm_v2.py    # Transformer model
+│   └── gpt2_wrapper.py    # GPT-2 fine-tuning wrapper
+├── qa/                    # Question-answering inference
+│   └── run_inference.py   # Inference script                    
+│   └── advice_mvp.py      # MVP script
+├── sources/               # Training data
+└── docs/                  # Documentation
 ```
 
-## Key Concepts Covered
+## Origins
 
-- **Tokenization**: Converting text to integers (character-level encoding)
-- **Embeddings**: Representing tokens as learnable vectors
-- **Batching**: Processing multiple sequences in parallel
-- **Loss Function**: Cross-entropy loss for classification
-- **Backpropagation**: Computing gradients (`loss.backward()`)
-- **Optimization**: Updating parameters to reduce loss (`optimizer.step()`)
-- **Text Generation**: Sampling from probability distributions
-- **Train/Validation Split**: Evaluating model on unseen data
-
-## Limitations
-
-This bigram model has significant limitations:
-- Only looks at one character at a time (no context beyond the immediate previous character)
-- No attention mechanism
-- No multi-layer architecture
-- Character-level (not subword/token-level like modern LLMs)
-
-These limitations are intentional - this is a stepping stone to understanding more sophisticated architectures like Transformers.
-
-## Next Steps
-
-After understanding this bigram model, typical next steps include:
-1. Implementing self-attention mechanisms
-2. Adding multiple layers and residual connections
-3. Implementing the full Transformer architecture
-4. Using more sophisticated tokenization (BPE, WordPiece)
-5. Scaling up model size and training data
-
-## Learning Resources
-
-- **Tutorial Video**: Andrej Karpathy's LLM tutorial (link to be added)
-- **notes.md**: Detailed notes with visual explanations of key concepts
-- **Training Code**: `training.py` contains extensive comments explaining each step
-- **Documentation**: See [docs/README.md](docs/README.md) for comprehensive guides on:
-  - Fine-tuning strategies (LoRA, full fine-tuning)
-  - GPT-2 integration
-  - Performance optimization
-  - Checkpoint management
-
-## Credits
-
-This implementation follows the tutorial by Andrej Karpathy. All credit for the teaching methodology and approach goes to him.
+The core transformer implementation in this project originated from [Andrej Karpathy's tutorial](https://www.youtube.com/watch?v=kCc8FmEb1nY) on building language models from scratch. The project has since evolved into a specialized application for generating advice column responses.
 
 ## License
 
-This is a personal learning project. Please refer to the original tutorial (https://www.youtube.com/watch?v=kCc8FmEb1nY&t=1094s) for any licensing information.
-
+This is a personal project.
