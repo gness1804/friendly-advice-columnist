@@ -89,6 +89,14 @@
         }
     });
 
+    // Handle error responses (HTMX doesn't swap content for non-2xx by default)
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        if (evt.detail.elt.id === 'advice-form') {
+            const responseArea = document.getElementById('response-area');
+            responseArea.innerHTML = evt.detail.xhr.responseText;
+        }
+    });
+
     // Allow Ctrl+Enter to submit
     textarea.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
