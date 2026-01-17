@@ -19,9 +19,7 @@ The system uses a two-stage LLM architecture:
 
 This two-stage approach combines the broad knowledge and reasoning capabilities of a general-purpose LLM with the specific tone and style learned from high-quality advice column examples.
 
-## Project Status
-
-This is currently a **backend-only application**. A frontend interface is planned for future development.
+Questions are screened before processing to ensure they relate to interpersonal matters (relationships, family, friends, workplace dynamics, etc.). Off-topic questions are rejected with a helpful message.
 
 ## Prerequisites
 
@@ -40,11 +38,29 @@ This is currently a **backend-only application**. A frontend interface is planne
 
 ## Usage
 
-### Basic Usage
+### Web Interface (Recommended)
+
+The application includes a web frontend built with FastAPI, HTMX, and Tailwind CSS.
+
+**Start the server:**
+```bash
+# Load environment variables and start the server
+set -a && source .env && set +a && uvicorn app.main:app --reload
+```
+
+Then open your browser to **http://127.0.0.1:8000**
+
+The web interface provides:
+- A text area to enter your question
+- Real-time character count (4000 character limit)
+- Loading indicator while processing
+- Error messages for off-topic questions
+
+### Command Line Usage
 
 ```bash
-# Pose a question to the application. The application then gives you an answer based on the processing of both LLMs.
-python qa/advice_mvp.py --question <question>
+# Pose a question via CLI
+python qa/advice_mvp.py --question "Your interpersonal question here"
 ```
 
 ### Training
@@ -86,6 +102,11 @@ ruff format .
 friendly-advice-columnist/
 ├── README.md              # This file
 ├── CLAUDE.md              # Development guidance
+├── app/                   # Web application (FastAPI)
+│   ├── main.py            # FastAPI app entry point
+│   ├── routes/            # API endpoints
+│   ├── templates/         # Jinja2 HTML templates
+│   └── static/            # CSS (Tailwind)
 ├── training.py            # Main training script
 ├── training/              # Training utilities
 │   ├── config.py          # Configuration management
@@ -93,10 +114,12 @@ friendly-advice-columnist/
 │   └── checkpointing.py   # Checkpoint management
 ├── models/                # Model implementations
 │   ├── bigram_lm_v2.py    # Transformer model
-│   └── gpt2_wrapper.py    # GPT-2 fine-tuning wrapper
+│   ├── gpt2_wrapper.py    # GPT-2 fine-tuning wrapper
+│   └── prompts.py         # System prompts for LLMs
 ├── qa/                    # Question-answering inference
-│   └── run_inference.py   # Inference script                    
+│   ├── run_inference.py   # Inference script
 │   └── advice_mvp.py      # MVP script
+├── tests/                 # Test suite
 ├── sources/               # Training data
 └── docs/                  # Documentation
 ```

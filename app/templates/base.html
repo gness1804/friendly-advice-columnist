@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Friendly Advice Columnist{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-surface min-h-screen text-text">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-center">
+                <span class="text-text">Friendly Advice</span>
+                <span class="text-primary"> Columnist</span>
+            </h1>
+            <p class="text-text-muted text-center mt-2">
+                Thoughtful, compassionate advice for life's interpersonal challenges
+            </p>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="mt-12 pt-6 border-t border-surface-lighter text-center text-text-dark text-sm">
+            <p>&copy; {{ now().year if now is defined else "2026" }} Friendly Advice Columnist</p>
+        </footer>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

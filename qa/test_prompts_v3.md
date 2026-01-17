@@ -142,7 +142,7 @@ In short, approach your friends with honesty and warmth, be prepared for a range
 
 ---
 
-(Not in the original @test_prompts_v1.md)
+(Not in the original @test_prompts_v1.md. The below questions also do not have draft responses because they're meant to be used with the new MVP that does this behind the scenes. )
 
 QUESTION:
 I married into a religious family a few years ago. I was raised secular and have long been skeptical of religion. I've even participated in some secular and atheist organizations and was vice president of one of them. But after I got engaged to my now-wife, I underwent a baptism into Christianity. I did this largely due to pressure from her family. It meant a lot to my wife and her family, and I thought at the time that I might be able to work with the more palatable parts of Christianity while keeping the rest at bay. After all, there are very few devout people who follow all rules of their religion to the letter.
@@ -150,3 +150,16 @@ I married into a religious family a few years ago. I was raised secular and have
 It hasn't exactly worked out like that. I underestimated or intentionally forgot why I was so resistant to adopting the faith in the first place. My reasons are private, but basically boil down to the fact that I couldn't accept the supernatural claims, and I also didn't like the troubled history and political associations of the faith. Two years ago, I realized that I just couldn't be a Christian anymore, and so I "deconverted" privately. But I've since been living sort of a double life. My wife knows about my renewed secular identity, as does my atheist sister-in-law. Another sister-in-law, who is still a Christian, has an inkling. But the rest of her family is in the dark, unless my wife has told them without my knowledge.
 
 The question is, should I continue living this lie or should I tell them about my true identity? The main benefit of the status quo is that I really do feel accepted and loved, but I worry that that acceptance and love are contingent upon a religious identity that I no longer truly have. But I worry that if I tell them it could create a rift and cause me to regret my decision. Do you think that I should come clean to my in-laws about my new religious identity? Or should I continue to play along as though I'm a Christian?
+
+---
+
+QUESTION:
+My wife and I live in a very red state. We're both liberal politically, and we don't like what's going on in this country. We have a big disagreement about relocating. I'm adamant about leaving our red state for a blue state—namely this is because of culture and politics. I want to be surrounded by people who share my values, but my wife is very close to her family, which lives mostly in our red state. She doesn't want to move. What's the best way forward here? 
+
+---
+
+QUESTION:
+I got married a few years ago, and my wife's family is large and close-knit. I am from the opposite type of family: smaller and much more spread out. I like spending time with them, but sometimes I feel a bit smothered and want time to myself. Often, it's hard to find time for myself to work on personal projects or leisure stuff because their family takes up all my time. How can I lovingly but firmly tell my wife that I need more space? 
+
+---
+
