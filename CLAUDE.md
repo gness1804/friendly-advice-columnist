@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An AI-powered advice columnist that provides thoughtful, compassionate responses to interpersonal questions. The system uses a two-stage LLM architecture: a base LLM generates an initial draft, then a fine-tuned model (trained on curated advice column examples) refines it into a polished response.
 
+## House rules
+
+- When starting on a new bug fix or feature on the master branch or similar, Offer to create a new Git branch for the work.
+
 ## Common Commands
 
 ### Running the Advice Columnist
