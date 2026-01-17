@@ -40,4 +40,6 @@ We need to figure out several things:
 - The front-end application should be secure and follow best practices for security. 
 - The front-end application should be scalable and should be able to handle a large number of users. 
 
-Before working on this application, please present me with a series of proposed steps and get my permission before starting. 
+Before working on this application, please present me with a series of proposed steps and get my permission before starting.
+
+<!-- DONE -->
