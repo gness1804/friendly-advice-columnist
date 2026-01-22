@@ -1,3 +1,6 @@
+---
+github_issue: 3
+---
 # Build An Ai Scorer That Benchmarks Model Outputs Against Each Other
 
 ## Working directory
