@@ -1,3 +1,6 @@
+---
+github_issue: 6
+---
 # Add Ability To Save Sessions And Record A History Of Questions That You Asked
 
 ## Working directory
@@ -13,4 +16,6 @@ It would be nice to have a list of questions that the user previously asked in a
 - Users have the ability to view past conversations. 
 - Past conversations are persisted across sessions as well as within a session. 
 - Past conversations are displayed via selecting a menu option for each conversation, similar to what ChatGPT does. 
-- A button exists that the user can press, which erases their conversation history. This button should require confirmation from the user to complete this action. 
+- A button exists that the user can press, which erases their conversation history. This button should require confirmation from the user to complete this action.
+
+<!-- DONE -->

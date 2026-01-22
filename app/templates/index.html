@@ -86,6 +86,15 @@
         if (evt.detail.elt.id === 'advice-form') {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Get Advice';
+
+            // Save the conversation to history if successful
+            if (evt.detail.successful) {
+                const question = textarea.value;
+                const responseArea = document.getElementById('response-area');
+                if (question && responseArea && responseArea.innerHTML) {
+                    UIManager.saveConversation(question, responseArea.innerHTML);
+                }
+            }
         }
     });
 
