@@ -404,7 +404,6 @@ class TrainingDataCleaner:
         
         cleaned_lines = []
         in_bot_section = False
-        bot_section_start = None
         
         # Track Q&A pairs: if we remove a column_meta QUESTION, also remove its ANSWER
         in_question_to_remove = False
@@ -440,7 +439,6 @@ class TrainingDataCleaner:
             elif self.is_reddit_bot_boilerplate(lines, idx):
                 if not in_bot_section:
                     in_bot_section = True
-                    bot_section_start = idx
                 should_remove = True
                 issue_type = "reddit_bot_boilerplate"
                 # Check if we should end bot section (blank line after bot content)
@@ -578,7 +576,7 @@ class TrainingDataCleaner:
         print("\n" + report)
         
         # Print size estimates
-        print(f"\n📊 Size Estimates:")
+        print("\n📊 Size Estimates:")
         print(f"   Current size: {original_size / 1024:.1f} KB ({original_size / (1024*1024):.2f} MB)")
         print(f"   Estimated new size: {estimated_new_size / 1024:.1f} KB ({estimated_new_size / (1024*1024):.2f} MB)")
         print(f"   Estimated reduction: {estimated_reduction:.1f}% ({(original_size - estimated_new_size) / 1024:.1f} KB)")
@@ -601,7 +599,7 @@ class TrainingDataCleaner:
         new_size = self.input_file.stat().st_size
         actual_reduction = ((original_size - new_size) / original_size) * 100
         
-        print(f"\n✅ Cleanup complete!")
+        print("\n✅ Cleanup complete!")
         print(f"   Original size: {original_size / 1024:.1f} KB ({original_size / (1024*1024):.2f} MB)")
         print(f"   New size: {new_size / 1024:.1f} KB ({new_size / (1024*1024):.2f} MB)")
         print(f"   Actual reduction: {actual_reduction:.1f}% ({(original_size - new_size) / 1024:.1f} KB)")

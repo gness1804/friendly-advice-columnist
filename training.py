@@ -8,15 +8,12 @@ import os
 import sys
 import time
 import torch
-import math
 from datetime import datetime
 
 # Helper module imports
 from training.config import load_config_fresh_from_env, load_config_from_checkpoint, config_to_dict, _select_device
 from training.io_utils import (
-    TeeOutput,
     setup_stdout_capture,
-    restore_stdout,
     get_data_source_name,
     get_model_name,
     generate_output_filename,
@@ -26,10 +23,8 @@ from training.checkpointing import (
     load_checkpoint,
     save_checkpoint,
     create_checkpoint_log_file,
-    write_checkpoint_log,
-    close_checkpoint_log,
 )
-from training.data import load_raw_text, prepare_data_and_tokenizer, prepare_gpt2_data, get_batch
+from training.data import load_raw_text, prepare_data_and_tokenizer, get_batch
 
 # ============================================================================
 # UTILITIES
@@ -273,10 +268,10 @@ def main():
                 print(f"📈 Learning rate schedule: WARMUP ({warmup_steps} steps) → CONSTANT")
                 print(f"   LR: {config.learning_rate * 0.1:.2e} → {config.learning_rate:.2e} (then constant)")
             else:
-                print(f"📈 Learning rate schedule: CONSTANT (warmup disabled - too few steps)")
+                print("📈 Learning rate schedule: CONSTANT (warmup disabled - too few steps)")
                 print(f"   LR: {config.learning_rate:.2e} (constant throughout training)")
         else:
-            print(f"📈 Learning rate schedule: CONSTANT (warmup disabled via USE_LR_WARMUP=False)")
+            print("📈 Learning rate schedule: CONSTANT (warmup disabled via USE_LR_WARMUP=False)")
             print(f"   LR: {config.learning_rate:.2e} (constant throughout training)")
 
     # Collect hyperparameters for output file

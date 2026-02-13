@@ -27,7 +27,7 @@ def main():
         '-o', '--output',
         type=str,
         default=DEFAULT_OUTPUT_PATH,
-        help=f'Path to the output JSONL file'
+        help='Path to the output JSONL file'
     )
     
     args = parser.parse_args()

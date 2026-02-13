@@ -87,7 +87,7 @@ def normalize_dataset(input_file, output_file):
                                 # Round to nearest 0.5
                                 score_float = round(score_float * 2) / 2
                             score = f"{score_float:.1f}"
-                        except:
+                        except (ValueError, ArithmeticError):
                             pass
                         normalized_lines.append('')
                         normalized_lines.append(f'SCORE: {score}')
@@ -106,7 +106,7 @@ def normalize_dataset(input_file, output_file):
                         if score_float % 0.5 != 0:
                             score_float = round(score_float * 2) / 2
                         score = f"{score_float:.1f}"
-                    except:
+                    except (ValueError, ArithmeticError):
                         pass
                     normalized_lines.append('')
                     normalized_lines.append(f'SCORE: {score}')

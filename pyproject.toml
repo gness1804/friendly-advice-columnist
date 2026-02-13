@@ -48,6 +48,15 @@ dev = [
 line-length = 100
 target-version = "py310"
 
+[tool.ruff.lint.per-file-ignores]
+# These files use sys.path.insert before imports, which is required for the project layout
+"app/main.py" = ["E402"]
+"qa/advice_mvp.py" = ["E402"]
+"qa/prepare_openai_dataset.py" = ["E402"]
+"tests/**/test_*.py" = ["E402"]
+# Backup files are archived snapshots, not actively maintained
+"backups/*.py" = ["F821"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"

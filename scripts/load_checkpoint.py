@@ -66,7 +66,7 @@ if MODEL_TYPE == "openai_backend":
             output_path = os.path.join(OUTPUT_DIR, output_filename)
             try:
                 with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(f"Backend: openai_backend\n")
+                    f.write("Backend: openai_backend\n")
                     f.write(f"Model: {os.environ.get('OPENAI_MODEL', '')}\n")
                     f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                     f.write(f"Temperature: {os.environ.get('TEMPERATURE', 0.3)}\n")

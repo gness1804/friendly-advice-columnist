@@ -12,10 +12,7 @@ Inspects:
 
 import os
 import torch
-import json
 from pathlib import Path
-from datetime import datetime
-import sys
 
 CHECKPOINT_DIR = "checkpoints"
 
@@ -236,7 +233,6 @@ def plot_loss_curves(losses):
 
         # Highlight the catastrophic spike if present
         train_array = np.array(losses["train"])
-        val_array = np.array(losses["val"])
         
         # Find steps with large loss jumps
         if len(train_array) > 1:
@@ -350,9 +346,9 @@ def analyze_loss_stability(losses):
         spike_step = losses["steps"][max_delta_idx]
         pre_spike_train = train[max(0, max_delta_idx - 1)]
         post_spike_train = train[max_delta_idx + 1]
-        print(f"\n⚠️  SPIKE DETECTED:")
+        print("\n⚠️  SPIKE DETECTED:")
         print(f"   Step {spike_step}: Train loss jumped from {pre_spike_train:.4f} → {post_spike_train:.4f}")
-        print(f"   Recovery pattern: ", end="")
+        print("   Recovery pattern: ", end="")
 
         # Look at next 5 steps
         recovery_steps = train[max_delta_idx + 1 : min(max_delta_idx + 6, len(train))]
