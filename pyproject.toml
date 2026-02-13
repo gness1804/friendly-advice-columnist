@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.bump2version]
-current_version = "1.1.1"
+current_version = "1.2.0"
 commit = true
 tag = true
 files = ["pyproject.toml"]
 
 [project]
 name = "friendly-advice-columnist"
-version = "1.1.1"
+version = "1.2.0"
 description = "AI-powered friendly advice columnist."
 readme = "README.md"
 requires-python = ">=3.10"
