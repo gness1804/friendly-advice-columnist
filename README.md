@@ -55,6 +55,8 @@ The web interface provides:
 - Real-time character count (4000 character limit)
 - Loading indicator while processing
 - Error messages for off-topic questions
+- Conversation history sidebar (persisted in localStorage and DynamoDB)
+- "Bring your own API key" model for multi-user support
 
 ### Command Line Usage
 
@@ -89,6 +91,18 @@ python qa/run_inference.py --prompt 'QUESTION: ...' --model_type openai_backend 
 # For version 3: python qa/run_inference.py --prompt '...' --model_type openai_backend --version v3
 ```
 
+### Deployment (AWS)
+
+The app deploys to AWS App Runner with DynamoDB for conversation persistence. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full details.
+
+```bash
+# Dry run
+./deploy.sh --dry-run
+
+# Full deployment
+export OWNER_API_KEY_HASH="<your-hash>" && ./deploy.sh
+```
+
 ### Linting
 
 ```bash
@@ -104,9 +118,12 @@ friendly-advice-columnist/
 ├── CLAUDE.md              # Development guidance
 ├── app/                   # Web application (FastAPI)
 │   ├── main.py            # FastAPI app entry point
+│   ├── dynamodb.py        # DynamoDB conversation persistence
 │   ├── routes/            # API endpoints
 │   ├── templates/         # Jinja2 HTML templates
-│   └── static/            # CSS (Tailwind)
+│   └── static/            # CSS and JS (Tailwind, HTMX)
+├── deploy.sh              # AWS deployment script
+├── Dockerfile             # Container definition
 ├── training.py            # Main training script
 ├── training/              # Training utilities
 │   ├── config.py          # Configuration management

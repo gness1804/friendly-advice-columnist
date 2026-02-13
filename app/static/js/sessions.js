@@ -1,6 +1,7 @@
 /**
  * Session management for Friendly Advice Columnist
- * Handles saving, loading, and managing conversation history in localStorage
+ * Handles saving, loading, and managing conversation history.
+ * Uses localStorage as primary store and syncs to DynamoDB when an API key is available.
  */
 
 const SessionManager = {
@@ -82,6 +83,9 @@ const SessionManager = {
         this.saveSessions(sessions);
         this.setCurrentSessionId(session.id);
 
+        // Sync to DynamoDB in background
+        this._syncSave(session);
+
         return session;
     },
 
@@ -98,6 +102,10 @@ const SessionManager = {
             sessions[index].preview = this.createPreview(question);
             sessions[index].updatedAt = new Date().toISOString();
             this.saveSessions(sessions);
+
+            // Sync to DynamoDB in background
+            this._syncSave(sessions[index]);
+
             return sessions[index];
         }
 
@@ -116,6 +124,9 @@ const SessionManager = {
         if (this.getCurrentSessionId() === sessionId) {
             this.setCurrentSessionId(null);
         }
+
+        // Sync deletion to DynamoDB in background
+        this._syncDelete(sessionId);
     },
 
     /**
@@ -124,6 +135,9 @@ const SessionManager = {
     clearAllSessions() {
         this.saveSessions([]);
         this.setCurrentSessionId(null);
+
+        // Sync to DynamoDB in background
+        this._syncDeleteAll();
     },
 
     /**
@@ -155,6 +169,93 @@ const SessionManager = {
         } else {
             return date.toLocaleDateString();
         }
+    },
+
+    /**
+     * Load conversations from DynamoDB and merge with localStorage.
+     * Called on init when an API key is available.
+     */
+    async loadFromServer() {
+        if (typeof ApiKeyManager === 'undefined' || !ApiKeyManager.hasKey()) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/conversations', {
+                headers: { 'X-OpenAI-API-Key': ApiKeyManager.getKey() }
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const serverSessions = (data.conversations || []).map(item => ({
+                id: item.session_id,
+                question: item.question,
+                response: item.response,
+                preview: item.preview,
+                createdAt: item.updated_at,
+                updatedAt: item.updated_at
+            }));
+
+            // Merge: server sessions that aren't in localStorage get added
+            const localSessions = this.getAllSessions();
+            const localIds = new Set(localSessions.map(s => s.id));
+
+            for (const session of serverSessions) {
+                if (!localIds.has(session.id)) {
+                    localSessions.push(session);
+                }
+            }
+
+            // Sort by updatedAt descending
+            localSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            this.saveSessions(localSessions);
+        } catch (e) {
+            console.error('Failed to load conversations from server:', e);
+        }
+    },
+
+    // --- DynamoDB sync helpers (fire-and-forget) ---
+
+    _getHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        if (typeof ApiKeyManager !== 'undefined' && ApiKeyManager.hasKey()) {
+            headers['X-OpenAI-API-Key'] = ApiKeyManager.getKey();
+        }
+        return headers;
+    },
+
+    _syncSave(session) {
+        if (typeof ApiKeyManager === 'undefined' || !ApiKeyManager.hasKey()) return;
+
+        fetch('/api/conversations', {
+            method: 'POST',
+            headers: this._getHeaders(),
+            body: JSON.stringify({
+                session_id: session.id,
+                question: session.question,
+                response: session.response,
+                preview: session.preview
+            })
+        }).catch(e => console.error('Failed to sync save:', e));
+    },
+
+    _syncDelete(sessionId) {
+        if (typeof ApiKeyManager === 'undefined' || !ApiKeyManager.hasKey()) return;
+
+        fetch(`/api/conversations/${sessionId}`, {
+            method: 'DELETE',
+            headers: this._getHeaders()
+        }).catch(e => console.error('Failed to sync delete:', e));
+    },
+
+    _syncDeleteAll() {
+        if (typeof ApiKeyManager === 'undefined' || !ApiKeyManager.hasKey()) return;
+
+        fetch('/api/conversations', {
+            method: 'DELETE',
+            headers: this._getHeaders()
+        }).catch(e => console.error('Failed to sync delete all:', e));
     }
 };
 
@@ -169,6 +270,11 @@ const UIManager = {
         this.bindEvents();
         this.renderHistoryList();
         this.setupMobileSidebar();
+
+        // Load server-side conversations and re-render
+        SessionManager.loadFromServer().then(() => {
+            this.renderHistoryList();
+        });
     },
 
     /**

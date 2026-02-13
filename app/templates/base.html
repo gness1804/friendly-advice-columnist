@@ -67,13 +67,23 @@
         <div class="flex-1 flex flex-col">
             <div class="container mx-auto px-4 py-8 max-w-3xl flex-1">
                 <header class="mb-8">
-                    <h1 class="text-3xl font-bold text-center">
-                        <span class="text-text">Friendly Advice</span>
-                        <span class="text-primary"> Columnist</span>
-                    </h1>
-                    <p class="text-text-muted text-center mt-2">
-                        Thoughtful, compassionate advice for life's interpersonal challenges
-                    </p>
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h1 class="text-3xl font-bold text-center">
+                                <span class="text-text">Friendly Advice</span>
+                                <span class="text-primary"> Columnist</span>
+                            </h1>
+                            <p class="text-text-muted text-center mt-2">
+                                Thoughtful, compassionate advice for life's interpersonal challenges
+                            </p>
+                        </div>
+                        <button id="settings-btn" class="p-2 hover:bg-surface-light rounded-md transition-colors ml-4" title="API Key Settings">
+                            <svg class="w-6 h-6 text-text-muted hover:text-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </header>
 
                 <main>
@@ -104,7 +114,38 @@
         </div>
     </div>
 
+    <!-- API Key settings modal -->
+    <div id="api-key-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="api-key-modal-backdrop"></div>
+        <div class="relative bg-surface-light border border-surface-lighter rounded-lg p-6 max-w-md mx-4">
+            <h3 class="text-lg font-semibold text-text mb-2">API Key Settings</h3>
+            <p class="text-text-muted mb-4 text-sm">
+                Enter your OpenAI API key. It is stored only in your browser's local storage and sent directly to OpenAI with each request.
+            </p>
+            <div class="mb-4">
+                <label for="api-key-input" class="block text-text text-sm mb-1">OpenAI API Key</label>
+                <input
+                    type="password"
+                    id="api-key-input"
+                    class="w-full bg-surface border border-surface-lighter rounded-md px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    placeholder="sk-..."
+                    autocomplete="off"
+                >
+            </div>
+            <div id="api-key-status" class="mb-4 text-sm hidden"></div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-api-key-btn" class="py-2 px-4 bg-surface border border-surface-lighter hover:bg-surface-lighter text-text rounded-md transition-colors text-sm">
+                    Cancel
+                </button>
+                <button id="save-api-key-btn" class="py-2 px-4 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors text-sm">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/js/sessions.js"></script>
+    <script src="/static/js/api-key.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
