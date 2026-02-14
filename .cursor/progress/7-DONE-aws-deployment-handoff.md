@@ -143,3 +143,5 @@ The Docker image works perfectly locally (app starts, serves requests, health ch
 - The owner's API key hash is `27a10673e7ae6af3bf01ef74cc43ff346919bb0ce617e0b37a2b345b5a5a935b`.
 
 ## Acceptance criteria
+
+<!-- DONE -->
