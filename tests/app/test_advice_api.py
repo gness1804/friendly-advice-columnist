@@ -137,7 +137,9 @@ class TestAdviceAPIEndpoint:
     @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
     @patch("app.routes.advice.call_fine_tuned_model")
-    def test_advice_endpoint_owner(self, mock_fine_tuned, mock_base, mock_validate, mock_is_owner):
+    def test_advice_endpoint_owner(
+        self, mock_fine_tuned, mock_base, mock_validate, mock_is_owner
+    ):
         """Owner should get fine-tuned model response."""
         mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
@@ -189,7 +191,9 @@ class TestAdviceHTMLEndpoint:
     @patch("app.routes.advice.is_owner_key", return_value=False)
     @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
-    def test_advice_html_endpoint_success(self, mock_base, mock_validate, mock_is_owner):
+    def test_advice_html_endpoint_success(
+        self, mock_base, mock_validate, mock_is_owner
+    ):
         """HTML endpoint should return HTML fragment for valid questions."""
         mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
@@ -217,7 +221,9 @@ class TestAdviceHTMLEndpoint:
     @patch("app.routes.advice.is_owner_key", return_value=False)
     @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
-    def test_advice_html_endpoint_api_error(self, mock_base, mock_validate, mock_is_owner):
+    def test_advice_html_endpoint_api_error(
+        self, mock_base, mock_validate, mock_is_owner
+    ):
         """HTML endpoint should return error HTML when API fails."""
         mock_validate.return_value = True
         mock_base.side_effect = RuntimeError("API connection failed")
@@ -257,14 +263,18 @@ class TestInputValidation:
     @patch("app.routes.advice.is_owner_key", return_value=False)
     @patch("app.routes.advice.validate_question_relevance")
     @patch("app.routes.advice.call_base_model")
-    def test_question_with_special_characters(self, mock_base, mock_validate, mock_is_owner):
+    def test_question_with_special_characters(
+        self, mock_base, mock_validate, mock_is_owner
+    ):
         """Questions with special characters should be handled."""
         mock_validate.return_value = True
         mock_base.return_value = MOCK_DRAFT_RESPONSE
 
         response = client.post(
             "/api/advice",
-            json={"question": "My partner & I aren't communicating well. What should I do?"},
+            json={
+                "question": "My partner & I aren't communicating well. What should I do?"
+            },
             headers=API_KEY_HEADER,
         )
 
@@ -338,7 +348,9 @@ class TestQuestionScreening:
 
         response = client.post(
             "/api/advice",
-            json={"question": "My mother-in-law keeps criticizing my parenting. What should I do?"},
+            json={
+                "question": "My mother-in-law keeps criticizing my parenting. What should I do?"
+            },
             headers=API_KEY_HEADER,
         )
 
@@ -400,3 +412,45 @@ class TestApiKeyRouting:
             assert is_owner_key("sk-any-key") is False
         finally:
             advice_module.OWNER_KEY_HASH = original
+
+    @patch("app.routes.advice.is_owner_key", return_value=False)
+    @patch("app.routes.advice.validate_question_relevance", return_value=True)
+    @patch("app.routes.advice.call_base_model")
+    def test_non_owner_uses_extended_prompt(
+        self, mock_base, mock_validate, mock_is_owner
+    ):
+        """Non-owner requests should pass the extended system prompt to call_base_model."""
+        from models.prompts import ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED
+
+        mock_base.return_value = MOCK_DRAFT_RESPONSE
+
+        client.post(
+            "/api/advice",
+            json={"question": "How do I talk to my partner?"},
+            headers=API_KEY_HEADER,
+        )
+
+        mock_base.assert_called_once()
+        _, kwargs = mock_base.call_args
+        assert kwargs.get("system_prompt") == ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED
+
+    @patch("app.routes.advice.is_owner_key", return_value=True)
+    @patch("app.routes.advice.validate_question_relevance", return_value=True)
+    @patch("app.routes.advice.call_base_model")
+    @patch("app.routes.advice.call_fine_tuned_model")
+    def test_owner_uses_default_prompt(
+        self, mock_fine_tuned, mock_base, mock_validate, mock_is_owner
+    ):
+        """Owner requests should not pass an extended system prompt to call_base_model."""
+        mock_base.return_value = MOCK_DRAFT_RESPONSE
+        mock_fine_tuned.return_value = MOCK_V3_RESPONSE
+
+        client.post(
+            "/api/advice",
+            json={"question": "How do I talk to my partner?"},
+            headers=API_KEY_HEADER,
+        )
+
+        mock_base.assert_called_once()
+        _, kwargs = mock_base.call_args
+        assert kwargs.get("system_prompt") is None

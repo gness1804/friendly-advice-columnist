@@ -3,6 +3,12 @@ github_issue: 10
 ---
 # Handoff: AWS Deployment Infrastructure
 
+## Working directory
+
+`~/Desktop/friendly-advice-columnist`
+
+## Contents
+
 **Date:** 2026-02-12
 **Branch:** `feature/aws-deployment`
 **Version:** 1.2.0
@@ -81,6 +87,7 @@ d338535 feat: Add AWS deployment infrastructure with BYOAK model and DynamoDB pe
 ## What's Left To Do (Next Steps)
 
 ### Before deploying
+0. ~~Missed requirement: Claude said that it would use an extended system prompt when the base model was used to add more of my voice.~~ **DONE** — Added `ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED` in `models/prompts.py`. Non-owner keys now use this extended prompt via a new `system_prompt` parameter on `generate_answer()`. 2 new tests added.
 1. **Run `./deploy.sh --dry-run`** to verify AWS CLI is configured and review what will be created
 2. **Generate the owner API key hash:** `python -c "import hashlib; print(hashlib.sha256(b'sk-your-actual-key').hexdigest())"`
 3. **Set `OWNER_API_KEY_HASH`** as an environment variable before deploying
@@ -106,3 +113,5 @@ d338535 feat: Add AWS deployment infrastructure with BYOAK model and DynamoDB pe
 - The pre-commit hook runs ruff on the entire repo. All lint errors are now resolved and the hook passes cleanly.
 - The `models/__init__.py` imports `BigramLanguageModel` which requires PyTorch. This works fine locally but is excluded from the Docker image (which only needs `openai_backend.py` and `prompts.py`). The Dockerfile copies only the specific model files needed.
 - bump2version is configured with `commit = true` and `tag = true`, so it tries to commit and tag automatically. If the pre-commit hook blocks it, you may need `--allow-dirty` or to do the version bump manually.
+
+## Acceptance criteria

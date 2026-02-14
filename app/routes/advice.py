@@ -14,7 +14,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from models.openai_backend import generate_answer, BASE_MODEL, FINE_TUNED_MODEL
-from models.prompts import QUESTION_SCREENING_PROMPT
+from models.prompts import (
+    QUESTION_SCREENING_PROMPT,
+    ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED,
+)
 from qa.mvp_utils import extract_revised_response
 
 limiter = Limiter(key_func=get_remote_address)
@@ -84,7 +87,9 @@ class AdviceResponse(BaseModel):
     """Response model for advice endpoint."""
 
     answer: str = Field(..., description="The advice response")
-    elapsed_time: float = Field(..., description="Time taken to generate response in seconds")
+    elapsed_time: float = Field(
+        ..., description="Time taken to generate response in seconds"
+    )
     used_fine_tuned: bool = Field(
         False, description="Whether the fine-tuned model was used"
     )
@@ -141,7 +146,9 @@ def validate_question_relevance(question: str, api_key: str) -> bool:
         raise RuntimeError(f"Failed to validate question: {e}")
 
 
-def call_base_model(question: str, api_key: str, max_retries: int = 2) -> str:
+def call_base_model(
+    question: str, api_key: str, max_retries: int = 2, system_prompt: str = None
+) -> str:
     """
     Call the base model to generate a draft response.
 
@@ -149,6 +156,7 @@ def call_base_model(question: str, api_key: str, max_retries: int = 2) -> str:
         question: User's question (will have QUESTION: prefix added)
         api_key: The user's OpenAI API key
         max_retries: Maximum number of retry attempts
+        system_prompt: Optional system prompt override
 
     Returns:
         Draft response from base model
@@ -162,7 +170,11 @@ def call_base_model(question: str, api_key: str, max_retries: int = 2) -> str:
     for attempt in range(max_retries + 1):
         try:
             response = generate_answer(
-                formatted_question, version="v1", model=BASE_MODEL, api_key=api_key
+                formatted_question,
+                version="v1",
+                model=BASE_MODEL,
+                api_key=api_key,
+                system_prompt=system_prompt,
             )
             return response
         except Exception as e:
@@ -248,16 +260,16 @@ async def get_advice(
     owner = is_owner_key(api_key)
 
     try:
-        # Step 1: Call base model for draft
-        draft_response = call_base_model(question, api_key)
-
         if owner:
-            # Step 2: Owner gets fine-tuned model revision
+            # Owner: two-stage pipeline (base model draft + fine-tuned revision)
+            draft_response = call_base_model(question, api_key)
             full_v3_response = call_fine_tuned_model(question, draft_response, api_key)
             revised_response = extract_revised_response(full_v3_response)
         else:
-            # Non-owner: use the base model response directly
-            # The base model already uses the columnist system prompt
+            # Non-owner: single-stage with extended prompt for richer voice
+            draft_response = call_base_model(
+                question, api_key, system_prompt=ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED
+            )
             revised_response = draft_response
             # Strip "ANSWER: " prefix if present
             if revised_response.startswith("ANSWER:"):
@@ -272,7 +284,9 @@ async def get_advice(
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {e}"
+        )
 
 
 @router.post("/advice/html", response_class=HTMLResponse)

@@ -6,13 +6,22 @@ from models.prompts import ADVICE_COLUMNIST_SYSTEM_PROMPT, SYSTEM_PROMPT_V3
 # Support both old and new environment variable patterns
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "ft:gpt-4.1-mini")
 BASE_MODEL = os.environ.get("BASE_MODEL", "gpt-4.1-mini")
-FINE_TUNED_MODEL = os.environ.get("FINE_TUNED_MODEL", "ft:gpt-4.1-mini-2025-04-14:personal:friendly-advice-01092026:CwGsaVcA")
+FINE_TUNED_MODEL = os.environ.get(
+    "FINE_TUNED_MODEL",
+    "ft:gpt-4.1-mini-2025-04-14:personal:friendly-advice-01092026:CwGsaVcA",
+)
 
 # Module-level client for backward compatibility (CLI usage)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
-def generate_answer(input: str, version: str = "v1", model: str = None, api_key: str = None) -> str:
+def generate_answer(
+    input: str,
+    version: str = "v1",
+    model: str = None,
+    api_key: str = None,
+    system_prompt: str = None,
+) -> str:
     """
     Generate an answer using OpenAI API.
 
@@ -25,6 +34,8 @@ def generate_answer(input: str, version: str = "v1", model: str = None, api_key:
             - Falls back to OPENAI_MODEL env var for backward compatibility
         api_key: Optional API key for per-request authentication.
             If None, uses the module-level client (env var key).
+        system_prompt: Optional system prompt to override the default for the
+            given version. If None, uses the standard prompt for that version.
 
     Returns:
         Generated response text
@@ -34,14 +45,17 @@ def generate_answer(input: str, version: str = "v1", model: str = None, api_key:
 
     if version == "v1":
         messages = [
-            {"role": "system", "content": ADVICE_COLUMNIST_SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": system_prompt or ADVICE_COLUMNIST_SYSTEM_PROMPT,
+            },
             {"role": "user", "content": input},
         ]
         # Use provided model, or BASE_MODEL, or fall back to OPENAI_MODEL
         model_to_use = model or BASE_MODEL or OPENAI_MODEL
     elif version == "v3":
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT_V3},
+            {"role": "system", "content": system_prompt or SYSTEM_PROMPT_V3},
             {"role": "user", "content": input},
         ]
         # Use provided model, or FINE_TUNED_MODEL, or fall back to OPENAI_MODEL
