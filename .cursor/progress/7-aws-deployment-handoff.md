@@ -1,3 +1,6 @@
+---
+github_issue: 10
+---
 # Handoff: AWS Deployment Infrastructure
 
 **Date:** 2026-02-12
