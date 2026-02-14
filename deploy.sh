@@ -86,12 +86,17 @@ fi
 # ---------- Step 2: Build Docker image ----------
 echo ""
 echo "--- Step 2: Build Docker Image ---"
-run_cmd docker build -t "${APP_NAME}:${IMAGE_TAG}" .
+run_cmd docker build --no-cache --platform linux/amd64 -t "${APP_NAME}:${IMAGE_TAG}" .
 
 # ---------- Step 3: Push to ECR ----------
 echo ""
 echo "--- Step 3: Push to ECR ---"
-run_cmd aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_HOST}"
+if [ "$DRY_RUN" = true ]; then
+    echo "[DRY RUN] aws ecr get-login-password | docker login --password-stdin ${ECR_HOST}"
+else
+    echo ">>> Logging in to ECR..."
+    aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_HOST}"
+fi
 run_cmd docker tag "${APP_NAME}:${IMAGE_TAG}" "${ECR_REGISTRY}:${IMAGE_TAG}"
 run_cmd docker push "${ECR_REGISTRY}:${IMAGE_TAG}"
 
