@@ -11,8 +11,10 @@ FINE_TUNED_MODEL = os.environ.get(
     "ft:gpt-4.1-mini-2025-04-14:personal:friendly-advice-01092026:CwGsaVcA",
 )
 
-# Module-level client for backward compatibility (CLI usage)
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Module-level client for backward compatibility (CLI usage).
+# Only created when OPENAI_API_KEY is set; web app uses per-request clients via BYOAK.
+_openai_api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=_openai_api_key) if _openai_api_key else None
 
 
 def generate_answer(
