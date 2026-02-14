@@ -13,6 +13,7 @@
 #
 # Required environment variables (set in .env or export before running):
 #   OWNER_API_KEY_HASH    - SHA-256 hash of the owner's OpenAI API key
+#   ECR_REGISTRY          - Full ECR registry URI (e.g. 123456.dkr.ecr.us-east-2.amazonaws.com/my-repo)
 #
 # Optional environment variables:
 #   AWS_REGION            - AWS region (default: us-east-2)
@@ -25,7 +26,6 @@ set -euo pipefail
 # ---------- Configuration ----------
 AWS_REGION="${AWS_REGION:-us-east-2}"
 APP_NAME="${APP_NAME:-friendly-advice-columnist}"
-ECR_REPO_NAME="${APP_NAME}"
 DYNAMODB_TABLE="${DYNAMODB_TABLE:-friendly-advice-conversations}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 DRY_RUN=false
@@ -40,14 +40,24 @@ for arg in "$@"; do
     esac
 done
 
+# ECR registry (required)
+if [ -z "${ECR_REGISTRY:-}" ]; then
+    echo "ERROR: ECR_REGISTRY is not set. Set it in .env or export it before running."
+    echo "Example: ECR_REGISTRY=123456.dkr.ecr.us-east-2.amazonaws.com/my-repo"
+    exit 1
+fi
+
+# Derive the registry host (everything before the first /) and repo name (everything after)
+ECR_HOST="${ECR_REGISTRY%%/*}"
+ECR_REPO_NAME="${ECR_REGISTRY#*/}"
+
 # Auto-detect AWS account ID
 AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
-ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
 
 echo "=== Friendly Advice Columnist Deployment ==="
 echo "Region:       ${AWS_REGION}"
 echo "Account:      ${AWS_ACCOUNT_ID}"
-echo "ECR Repo:     ${ECR_URI}"
+echo "ECR Registry: ${ECR_REGISTRY}"
 echo "Image Tag:    ${IMAGE_TAG}"
 echo "DynamoDB:     ${DYNAMODB_TABLE}"
 echo "Dry Run:      ${DRY_RUN}"
@@ -76,18 +86,18 @@ fi
 # ---------- Step 2: Build Docker image ----------
 echo ""
 echo "--- Step 2: Build Docker Image ---"
-run_cmd docker build -t "${ECR_REPO_NAME}:${IMAGE_TAG}" .
+run_cmd docker build -t "${APP_NAME}:${IMAGE_TAG}" .
 
 # ---------- Step 3: Push to ECR ----------
 echo ""
 echo "--- Step 3: Push to ECR ---"
-run_cmd aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-run_cmd docker tag "${ECR_REPO_NAME}:${IMAGE_TAG}" "${ECR_URI}:${IMAGE_TAG}"
-run_cmd docker push "${ECR_URI}:${IMAGE_TAG}"
+run_cmd aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AWS --password-stdin "${ECR_HOST}"
+run_cmd docker tag "${APP_NAME}:${IMAGE_TAG}" "${ECR_REGISTRY}:${IMAGE_TAG}"
+run_cmd docker push "${ECR_REGISTRY}:${IMAGE_TAG}"
 
 if [ "$BUILD_ONLY" = true ]; then
     echo ""
-    echo "=== Build complete. Image pushed to ${ECR_URI}:${IMAGE_TAG} ==="
+    echo "=== Build complete. Image pushed to ${ECR_REGISTRY}:${IMAGE_TAG} ==="
     exit 0
 fi
 
@@ -203,7 +213,7 @@ if [ -z "$SERVICE_EXISTS" ]; then
                 \"AccessRoleArn\": \"${ACCESS_ROLE_ARN}\"
             },
             \"ImageRepository\": {
-                \"ImageIdentifier\": \"${ECR_URI}:${IMAGE_TAG}\",
+                \"ImageIdentifier\": \"${ECR_REGISTRY}:${IMAGE_TAG}\",
                 \"ImageRepositoryType\": \"ECR\",
                 \"ImageConfiguration\": {
                     \"Port\": \"8000\",
@@ -241,7 +251,7 @@ else
                 \"AccessRoleArn\": \"${ACCESS_ROLE_ARN}\"
             },
             \"ImageRepository\": {
-                \"ImageIdentifier\": \"${ECR_URI}:${IMAGE_TAG}\",
+                \"ImageIdentifier\": \"${ECR_REGISTRY}:${IMAGE_TAG}\",
                 \"ImageRepositoryType\": \"ECR\",
                 \"ImageConfiguration\": {
                     \"Port\": \"8000\",
