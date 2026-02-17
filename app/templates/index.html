@@ -1,6 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- API Key prompt (shown when no key is stored) -->
+<div id="api-key-prompt" class="card mb-6 border-primary hidden">
+    <div class="flex items-start space-x-3">
+        <svg class="w-6 h-6 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+        </svg>
+        <div>
+            <p class="text-text font-medium">OpenAI API Key Required</p>
+            <p class="text-text-muted text-sm mt-1">
+                This app uses a "bring your own key" model. Your key is stored locally in your browser and sent directly to OpenAI.
+            </p>
+            <button onclick="ApiKeyUI.showModal()" class="mt-2 text-sm text-primary hover:text-primary-hover underline">
+                Set your API key
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <form id="advice-form"
           hx-post="/api/advice/html"
@@ -60,6 +78,7 @@
     const textarea = document.getElementById('question');
     const charCount = document.getElementById('char-count');
     const submitBtn = document.getElementById('submit-btn');
+    const apiKeyPrompt = document.getElementById('api-key-prompt');
 
     function updateCharCount() {
         const count = textarea.value.length;
@@ -73,6 +92,35 @@
             charCount.classList.add('text-text-dark');
         }
     }
+
+    // Show/hide API key prompt based on stored key
+    function checkApiKeyPrompt() {
+        if (apiKeyPrompt) {
+            if (typeof ApiKeyManager !== 'undefined' && ApiKeyManager.hasKey()) {
+                apiKeyPrompt.classList.add('hidden');
+            } else {
+                apiKeyPrompt.classList.remove('hidden');
+            }
+        }
+    }
+
+    // Check on load and after modal closes
+    document.addEventListener('DOMContentLoaded', checkApiKeyPrompt);
+    // Re-check when the API key modal is hidden
+    const observer = new MutationObserver(checkApiKeyPrompt);
+    const apiKeyModal = document.getElementById('api-key-modal');
+    if (apiKeyModal) {
+        observer.observe(apiKeyModal, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // Intercept form submission if no API key
+    document.getElementById('advice-form').addEventListener('htmx:beforeRequest', function(evt) {
+        if (typeof ApiKeyManager !== 'undefined' && !ApiKeyManager.hasKey()) {
+            evt.preventDefault();
+            ApiKeyUI.showModal();
+            return;
+        }
+    });
 
     // Disable submit button while request is in flight
     document.body.addEventListener('htmx:beforeRequest', function(evt) {

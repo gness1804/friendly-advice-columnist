@@ -18,7 +18,6 @@ import argparse
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
 
 # Add project root to path
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -137,7 +136,7 @@ def call_fine_tuned_model(question: str, draft_response: str, verbose: bool = Fa
     try:
         response = generate_answer(formatted_prompt, version="v3", model=FINE_TUNED_MODEL)
         if verbose:
-            print(f"✅ Fine-tuned model response received")
+            print("✅ Fine-tuned model response received")
         return response
     except Exception as e:
         raise RuntimeError(f"Failed to get response from fine-tuned model: {e}")
@@ -311,7 +310,7 @@ Examples:
         draft_response = call_base_model(question, max_retries=args.max_retries, verbose=args.verbose)
         
         if args.verbose:
-            print(f"\n📄 Draft Response Preview (first 150 chars):")
+            print("\n📄 Draft Response Preview (first 150 chars):")
             print(f"   {draft_response[:150]}...")
         
         # Step 2: Call fine-tuned model

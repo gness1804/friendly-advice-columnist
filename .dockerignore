@@ -1,0 +1,51 @@
+# Training data and models
+sources/
+checkpoints/
+outputs/
+training/
+transformer_core/
+self_attention/
+feed_forward/
+lora/
+
+# Training scripts
+training.py
+
+# Large ML dependencies not needed for web app
+*.pt
+*.bin
+*.safetensors
+
+# Development files
+.git/
+.github/
+.cursor/
+.vscode/
+.idea/
+docs/
+tests/
+tmp/
+temp/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Environment and config
+.env
+.env.*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node/frontend build tools
+node_modules/
+tailwindcss
+tailwind.config.js

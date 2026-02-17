@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.bump2version]
-current_version = "1.1.1"
+current_version = "1.2.0"
 commit = true
 tag = true
 files = ["pyproject.toml"]
 
 [project]
 name = "friendly-advice-columnist"
-version = "1.1.1"
+version = "1.2.0"
 description = "AI-powered friendly advice columnist."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,6 +47,15 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint.per-file-ignores]
+# These files use sys.path.insert before imports, which is required for the project layout
+"app/main.py" = ["E402"]
+"qa/advice_mvp.py" = ["E402"]
+"qa/prepare_openai_dataset.py" = ["E402"]
+"tests/**/test_*.py" = ["E402"]
+# Backup files are archived snapshots, not actively maintained
+"backups/*.py" = ["F821"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

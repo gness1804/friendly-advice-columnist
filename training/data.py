@@ -197,7 +197,7 @@ def prepare_data_and_tokenizer(
     
     # Set up tokenization based on method
     if tokenization_method == "gpt2":
-        print(f"📝 Using GPT-2 BPE tokenization (vocab_size=50,257)")
+        print("📝 Using GPT-2 BPE tokenization (vocab_size=50,257)")
         print("⚠️  Note: Large vocab may cause higher loss and slower training")
         encode, decode, vocab_size = _setup_gpt2_tokenization()
     

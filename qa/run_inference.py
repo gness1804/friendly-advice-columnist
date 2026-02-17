@@ -308,7 +308,7 @@ Examples:
             # Auto-detect: long prompts (> 200 chars) or prompts with newlines are likely direct prompts
             if len(args.prompt) > 200 or '\n' in args.prompt:
                 is_direct_prompt = True
-                print(f"💡 Detected long prompt or newlines - treating as direct prompt text")
+                print("💡 Detected long prompt or newlines - treating as direct prompt text")
     
     # Try to find the prompt as a shorthand reference (only for v1, and only if not direct)
     if is_direct_prompt:
@@ -316,9 +316,9 @@ Examples:
         prompt_text = args.prompt
         stem_text = ''
         if args.version == "v3":
-            print(f"✅ Using direct prompt text (v3 always uses command-line prompt)")
+            print("✅ Using direct prompt text (v3 always uses command-line prompt)")
         else:
-            print(f"✅ Using direct prompt text")
+            print("✅ Using direct prompt text")
     else:
         # Only v1 can use shorthand lookup
         # Try shorthand lookup with strict matching for longer inputs
@@ -336,7 +336,7 @@ Examples:
             # Not found in shorthand, treat as direct prompt text
             prompt_text = args.prompt
             stem_text = ''
-            print(f"✅ Using direct prompt text (not found in shorthand references)")
+            print("✅ Using direct prompt text (not found in shorthand references)")
     if args.checkpoint:
         print(f"   Using checkpoint: {args.checkpoint}")
     print(f"   Using model type: {args.model_type.upper()}")
@@ -346,7 +346,7 @@ Examples:
         if stem_text:
             print(f"   Using STEM: {stem_text[:60]}...")
         else:
-            print(f"   ⚠️  Warning: --use-stem specified but no STEM found for this prompt")
+            print("   ⚠️  Warning: --use-stem specified but no STEM found for this prompt")
     
     # Handle --use-stem for v1 (append stem as ANSWER: if available)
     if args.use_stem and args.version == "v1" and stem_text:
@@ -359,16 +359,16 @@ Examples:
     # Validate required trigger words based on version
     if args.version == "v1":
         if not prompt_text_clean.startswith("QUESTION:"):
-            print(f"❌ Error: For v1, the prompt must start with 'QUESTION:'")
+            print("❌ Error: For v1, the prompt must start with 'QUESTION:'")
             print(f"   Your prompt starts with: {prompt_text_clean[:50]}...")
             sys.exit(1)
     elif args.version == "v3":
         if "QUESTION:" not in prompt_text_clean:
-            print(f"❌ Error: For v3, the prompt must contain 'QUESTION:'")
+            print("❌ Error: For v3, the prompt must contain 'QUESTION:'")
             print(f"   Your prompt starts with: {prompt_text_clean[:50]}...")
             sys.exit(1)
         if "DRAFT_RESPONSE:" not in prompt_text_clean:
-            print(f"❌ Error: For v3, the prompt must contain 'DRAFT_RESPONSE:'")
+            print("❌ Error: For v3, the prompt must contain 'DRAFT_RESPONSE:'")
             print(f"   Your prompt: {prompt_text_clean[:100]}...")
             sys.exit(1)
     
@@ -421,13 +421,13 @@ Examples:
     # Print what we're running
     if instruction_text:
         instr_preview = instruction_text.replace('\n', ' ')
-        print(f"\n🧭 Instruction preview (first 120 chars):")
+        print("\n🧭 Instruction preview (first 120 chars):")
         print(f"   {instr_preview[:120]}...")
-    print(f"\n📏 Prompt preview (first 100 chars):")
+    print("\n📏 Prompt preview (first 100 chars):")
     print(f"   {prompt_text_clean[:100]}...")
-    print(f"\n📋 Full formatted prompt (first 150 chars):")
+    print("\n📋 Full formatted prompt (first 150 chars):")
     print(f"   {formatted_prompt[:150]}...")
-    print(f"\n🚀 Running inference...")
+    print("\n🚀 Running inference...")
     if checkpoint_path:
         print(f"   Checkpoint: {checkpoint_path}")
     print(f"   Environment variables from .env: {', '.join(env_vars.keys())}")

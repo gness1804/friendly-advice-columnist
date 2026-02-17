@@ -2,21 +2,33 @@
 API routes for the advice columnist.
 """
 
+import hashlib
+import html
 import os
 import time
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, HTTPException, Form
+from fastapi import APIRouter, HTTPException, Form, Header, Request
 from fastapi.responses import HTMLResponse
-from openai import OpenAI
+from openai import OpenAI, AuthenticationError
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from models.openai_backend import generate_answer, BASE_MODEL, FINE_TUNED_MODEL
-from models.prompts import QUESTION_SCREENING_PROMPT
+from models.prompts import (
+    QUESTION_SCREENING_PROMPT,
+    ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED,
+)
 from qa.mvp_utils import extract_revised_response
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["advice"])
 
 MAX_QUESTION_LENGTH = 4000
 REQUEST_TIMEOUT = 45  # seconds
+
+# Hash of the owner's API key for comparison (set via env var)
+OWNER_KEY_HASH = os.environ.get("OWNER_API_KEY_HASH", "")
 
 # Error message for off-topic questions
 OFF_TOPIC_ERROR = (
@@ -24,6 +36,40 @@ OFF_TOPIC_ERROR = (
     "Please submit a question about relationships, family, friends, workplace dynamics, "
     "or other interpersonal topics."
 )
+
+
+def hash_api_key(api_key: str) -> str:
+    """Create a SHA-256 hash of an API key for comparison."""
+    return hashlib.sha256(api_key.encode()).hexdigest()
+
+
+def is_owner_key(api_key: str) -> bool:
+    """Check if the provided API key belongs to the app owner."""
+    if not OWNER_KEY_HASH:
+        return False
+    return hash_api_key(api_key) == OWNER_KEY_HASH
+
+
+def validate_api_key(api_key: str) -> None:
+    """
+    Validate that an OpenAI API key is functional by making a lightweight call.
+
+    Raises:
+        HTTPException: If the key is invalid or the API is unreachable
+    """
+    try:
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+    except AuthenticationError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid OpenAI API key. Please check your key and try again.",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Could not validate API key: {e}",
+        )
 
 
 class AdviceRequest(BaseModel):
@@ -41,7 +87,12 @@ class AdviceResponse(BaseModel):
     """Response model for advice endpoint."""
 
     answer: str = Field(..., description="The advice response")
-    elapsed_time: float = Field(..., description="Time taken to generate response in seconds")
+    elapsed_time: float = Field(
+        ..., description="Time taken to generate response in seconds"
+    )
+    used_fine_tuned: bool = Field(
+        False, description="Whether the fine-tuned model was used"
+    )
 
 
 def format_question_for_v1(question: str) -> str:
@@ -63,12 +114,13 @@ def format_prompt_for_v3(question: str, draft_response: str) -> str:
     return f"QUESTION: {question}\n\nDRAFT_RESPONSE: {draft_response}"
 
 
-def validate_question_relevance(question: str) -> bool:
+def validate_question_relevance(question: str, api_key: str) -> bool:
     """
     Check if the question is about interpersonal/relationship matters.
 
     Args:
         question: The user's question
+        api_key: The user's OpenAI API key
 
     Returns:
         True if the question is relevant, False otherwise
@@ -76,7 +128,7 @@ def validate_question_relevance(question: str) -> bool:
     Raises:
         RuntimeError: If the screening call fails
     """
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    client = OpenAI(api_key=api_key)
 
     try:
         response = client.chat.completions.create(
@@ -94,13 +146,17 @@ def validate_question_relevance(question: str) -> bool:
         raise RuntimeError(f"Failed to validate question: {e}")
 
 
-def call_base_model(question: str, max_retries: int = 2) -> str:
+def call_base_model(
+    question: str, api_key: str, max_retries: int = 2, system_prompt: str = None
+) -> str:
     """
     Call the base model to generate a draft response.
 
     Args:
         question: User's question (will have QUESTION: prefix added)
+        api_key: The user's OpenAI API key
         max_retries: Maximum number of retry attempts
+        system_prompt: Optional system prompt override
 
     Returns:
         Draft response from base model
@@ -113,7 +169,13 @@ def call_base_model(question: str, max_retries: int = 2) -> str:
     last_error = None
     for attempt in range(max_retries + 1):
         try:
-            response = generate_answer(formatted_question, version="v1", model=BASE_MODEL)
+            response = generate_answer(
+                formatted_question,
+                version="v1",
+                model=BASE_MODEL,
+                api_key=api_key,
+                system_prompt=system_prompt,
+            )
             return response
         except Exception as e:
             last_error = e
@@ -126,13 +188,14 @@ def call_base_model(question: str, max_retries: int = 2) -> str:
     )
 
 
-def call_fine_tuned_model(question: str, draft_response: str) -> str:
+def call_fine_tuned_model(question: str, draft_response: str, api_key: str) -> str:
     """
     Call the fine-tuned model to revise the draft response.
 
     Args:
         question: Original user question
         draft_response: Draft response from base model
+        api_key: The user's OpenAI API key
 
     Returns:
         Full response from fine-tuned model
@@ -143,30 +206,50 @@ def call_fine_tuned_model(question: str, draft_response: str) -> str:
     formatted_prompt = format_prompt_for_v3(question, draft_response)
 
     try:
-        response = generate_answer(formatted_prompt, version="v3", model=FINE_TUNED_MODEL)
+        response = generate_answer(
+            formatted_prompt, version="v3", model=FINE_TUNED_MODEL, api_key=api_key
+        )
         return response
     except Exception as e:
         raise RuntimeError(f"Failed to get response from fine-tuned model: {e}")
 
 
+def _get_api_key(header_key: str | None) -> str:
+    """Extract and validate the API key from the request header or raise an error."""
+    if not header_key:
+        raise HTTPException(
+            status_code=401,
+            detail="OpenAI API key is required. Please enter your API key in the settings.",
+        )
+    return header_key
+
+
 @router.post("/advice", response_model=AdviceResponse)
-async def get_advice(request: AdviceRequest) -> AdviceResponse:
+@limiter.limit("10/minute")
+async def get_advice(
+    request: Request,
+    body: AdviceRequest,
+    x_openai_api_key: str | None = Header(None),
+) -> AdviceResponse:
     """
     Get advice for an interpersonal question.
 
     This endpoint:
-    1. Validates the question is about interpersonal matters
-    2. Base model generates a draft response
-    3. Fine-tuned model revises and improves the response
+    1. Validates the user's API key
+    2. Validates the question is about interpersonal matters
+    3. Base model generates a draft response
+    4. If using the owner's key, fine-tuned model revises the response
+    5. Otherwise, returns the base model response directly
     """
-    question = request.question.strip()
+    api_key = _get_api_key(x_openai_api_key)
+    question = body.question.strip()
 
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
     # Validate question is about interpersonal matters (before timing starts)
     try:
-        is_relevant = validate_question_relevance(question)
+        is_relevant = validate_question_relevance(question, api_key)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
@@ -174,29 +257,45 @@ async def get_advice(request: AdviceRequest) -> AdviceResponse:
         raise HTTPException(status_code=400, detail=OFF_TOPIC_ERROR)
 
     start_time = time.time()
+    owner = is_owner_key(api_key)
 
     try:
-        # Step 1: Call base model for draft
-        draft_response = call_base_model(question)
-
-        # Step 2: Call fine-tuned model to revise
-        full_v3_response = call_fine_tuned_model(question, draft_response)
-
-        # Step 3: Extract the revised response
-        revised_response = extract_revised_response(full_v3_response)
+        if owner:
+            # Owner: two-stage pipeline (base model draft + fine-tuned revision)
+            draft_response = call_base_model(question, api_key)
+            full_v3_response = call_fine_tuned_model(question, draft_response, api_key)
+            revised_response = extract_revised_response(full_v3_response)
+        else:
+            # Non-owner: single-stage with extended prompt for richer voice
+            draft_response = call_base_model(
+                question, api_key, system_prompt=ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED
+            )
+            revised_response = draft_response
+            # Strip "ANSWER: " prefix if present
+            if revised_response.startswith("ANSWER:"):
+                revised_response = revised_response[7:].strip()
 
         elapsed_time = time.time() - start_time
 
-        return AdviceResponse(answer=revised_response, elapsed_time=elapsed_time)
+        return AdviceResponse(
+            answer=revised_response, elapsed_time=elapsed_time, used_fine_tuned=owner
+        )
 
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"An unexpected error occurred: {e}"
+        )
 
 
 @router.post("/advice/html", response_class=HTMLResponse)
-async def get_advice_html(question: str = Form(...)) -> HTMLResponse:
+@limiter.limit("10/minute")
+async def get_advice_html(
+    request: Request,
+    question: str = Form(...),
+    x_openai_api_key: str | None = Header(None),
+) -> HTMLResponse:
     """
     Get advice as HTML fragment (for HTMX).
 
@@ -204,27 +303,29 @@ async def get_advice_html(question: str = Form(...)) -> HTMLResponse:
     Accepts form data for easy HTMX integration.
     """
     try:
-        request = AdviceRequest(question=question)
-        response = await get_advice(request)
-        # Convert newlines to <br> and wrap in a div
-        formatted_answer = response.answer.replace("\n", "<br>")
-        html = f"""
+        advice_body = AdviceRequest(question=question)
+        response = await get_advice(request, advice_body, x_openai_api_key)
+        # Escape HTML to prevent XSS, then convert newlines to <br>
+        safe_answer = html.escape(response.answer).replace("\n", "<br>")
+        model_note = " (fine-tuned)" if response.used_fine_tuned else ""
+        html_content = f"""
         <div class="card">
             <h2 class="text-xl font-semibold text-primary mb-4">Advice</h2>
             <div class="text-text leading-relaxed">
-                <p>{formatted_answer}</p>
+                <p>{safe_answer}</p>
             </div>
             <p class="text-sm text-text-dark mt-4">
-                Response generated in {response.elapsed_time:.1f} seconds
+                Response generated in {response.elapsed_time:.1f} seconds{model_note}
             </p>
         </div>
         """
-        return HTMLResponse(content=html)
+        return HTMLResponse(content=html_content)
     except HTTPException as e:
+        safe_detail = html.escape(str(e.detail))
         error_html = f"""
         <div class="card border-primary">
             <p class="font-semibold text-primary">Error</p>
-            <p class="text-text-muted mt-2">{e.detail}</p>
+            <p class="text-text-muted mt-2">{safe_detail}</p>
         </div>
         """
         return HTMLResponse(content=error_html, status_code=e.status_code)

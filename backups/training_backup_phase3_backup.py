@@ -12,7 +12,7 @@ import os
 import sys
 from datetime import datetime
 from io import StringIO
-from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
+from torch.optim.lr_scheduler import LinearLR
 
 
 def format_time(seconds: float) -> str:
@@ -793,12 +793,12 @@ if MODEL_TYPE == "gpt2":
             )
         else:
             print(
-                f"📈 Learning rate schedule: CONSTANT (warmup disabled - too few steps)"
+                "📈 Learning rate schedule: CONSTANT (warmup disabled - too few steps)"
             )
             print(f"   LR: {learning_rate:.2e} (constant throughout training)")
     else:
         print(
-            f"📈 Learning rate schedule: CONSTANT (warmup disabled via USE_LR_WARMUP=False)"
+            "📈 Learning rate schedule: CONSTANT (warmup disabled via USE_LR_WARMUP=False)"
         )
         print(f"   LR: {learning_rate:.2e} (constant throughout training)")
 

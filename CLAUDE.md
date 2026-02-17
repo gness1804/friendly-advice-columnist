@@ -35,8 +35,25 @@ CHECKPOINT_PATH=checkpoints/checkpoint_step_5000.pt RESUME_STEPS=5000 python tra
 TEST_MODE=True python training.py
 ```
 
+### Deployment
+
+```bash
+# Deploy to AWS (dry run)
+./deploy.sh --dry-run
+
+# Full deployment
+export OWNER_API_KEY_HASH="<hash>" && ./deploy.sh
+
+# Build and push Docker image only
+./deploy.sh --build-only
+```
+
 ### Key Environment Variables
 
+- `OWNER_API_KEY_HASH`: SHA-256 hash of the owner's OpenAI API key (for fine-tuned model routing)
+- `DYNAMODB_TABLE`: DynamoDB table name (default: "friendly-advice-conversations")
+- `AWS_REGION`: AWS region (default: "us-east-2")
+- `ALLOWED_ORIGINS`: Comma-separated CORS origins
 - `MODEL_TYPE`: "from_scratch" (default) or "gpt2"
 - `USE_LORA`: "true" to enable LoRA adapters for GPT-2
 - `TRAINING_DATA_SOURCE`: Path to training data (default: `sources/training_data_final_merged.md`)
