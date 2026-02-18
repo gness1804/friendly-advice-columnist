@@ -13,11 +13,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.main import app
+from app.session import COOKIE_NAME, encrypt_api_key
 
 client = TestClient(app)
 
-# Common test header with a fake API key
-API_KEY_HEADER = {"X-OpenAI-API-Key": "sk-test-key-for-testing"}
+# Fake API key and corresponding encrypted cookie for tests
+FAKE_API_KEY = "sk-test-key-for-testing"
+SESSION_COOKIES = {COOKIE_NAME: encrypt_api_key(FAKE_API_KEY)}
 
 # Mock responses for testing
 MOCK_DRAFT_RESPONSE = "This is a draft response about your situation."
@@ -90,19 +92,19 @@ class TestSecurityHeaders:
 
 
 class TestApiKeyRequirement:
-    """Tests for API key requirement."""
+    """Tests for API key requirement (via session cookie)."""
 
-    def test_advice_endpoint_requires_api_key(self):
-        """Advice endpoint should reject requests without an API key."""
+    def test_advice_endpoint_requires_session(self):
+        """Advice endpoint should reject requests without a session cookie."""
         response = client.post(
             "/api/advice",
             json={"question": "How do I talk to my partner?"},
         )
         assert response.status_code == 401
-        assert "API key" in response.json()["detail"]
+        assert "session" in response.json()["detail"].lower()
 
-    def test_advice_html_requires_api_key(self):
-        """HTML advice endpoint should reject requests without an API key."""
+    def test_advice_html_requires_session(self):
+        """HTML advice endpoint should reject requests without a session cookie."""
         response = client.post(
             "/api/advice/html",
             data={"question": "How do I talk to my partner?"},
@@ -124,7 +126,7 @@ class TestAdviceAPIEndpoint:
         response = client.post(
             "/api/advice",
             json={"question": "How do I talk to my partner about finances?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -148,7 +150,7 @@ class TestAdviceAPIEndpoint:
         response = client.post(
             "/api/advice",
             json={"question": "How do I talk to my partner about finances?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -161,7 +163,7 @@ class TestAdviceAPIEndpoint:
         response = client.post(
             "/api/advice",
             json={"question": ""},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
         assert response.status_code == 422  # Validation error
 
@@ -170,7 +172,7 @@ class TestAdviceAPIEndpoint:
         response = client.post(
             "/api/advice",
             json={},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
         assert response.status_code == 422
 
@@ -180,7 +182,7 @@ class TestAdviceAPIEndpoint:
         response = client.post(
             "/api/advice",
             json={"question": long_question},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
         assert response.status_code == 422
 
@@ -201,7 +203,7 @@ class TestAdviceHTMLEndpoint:
         response = client.post(
             "/api/advice/html",
             data={"question": "How do I set boundaries with family?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -213,7 +215,7 @@ class TestAdviceHTMLEndpoint:
         response = client.post(
             "/api/advice/html",
             data={"question": ""},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
         # FastAPI returns 422 for validation errors even with HTML
         assert response.status_code == 422
@@ -231,7 +233,7 @@ class TestAdviceHTMLEndpoint:
         response = client.post(
             "/api/advice/html",
             data={"question": "How do I handle conflict?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 503
@@ -248,7 +250,7 @@ class TestAdviceHTMLEndpoint:
         response = client.post(
             "/api/advice/html",
             data={"question": "How do I handle a difficult coworker?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -275,7 +277,7 @@ class TestInputValidation:
             json={
                 "question": "My partner & I aren't communicating well. What should I do?"
             },
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -291,7 +293,7 @@ class TestInputValidation:
         response = client.post(
             "/api/advice",
             json={"question": "Line 1\nLine 2\nLine 3"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -317,7 +319,7 @@ class TestQuestionScreening:
         response = client.post(
             "/api/advice",
             json={"question": "How do I fix my car's transmission?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 400
@@ -331,7 +333,7 @@ class TestQuestionScreening:
         response = client.post(
             "/api/advice/html",
             data={"question": "What is the capital of France?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 400
@@ -351,7 +353,7 @@ class TestQuestionScreening:
             json={
                 "question": "My mother-in-law keeps criticizing my parenting. What should I do?"
             },
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 200
@@ -366,7 +368,7 @@ class TestQuestionScreening:
         response = client.post(
             "/api/advice",
             json={"question": "How do I talk to my sister?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         assert response.status_code == 503
@@ -427,7 +429,7 @@ class TestApiKeyRouting:
         client.post(
             "/api/advice",
             json={"question": "How do I talk to my partner?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         mock_base.assert_called_once()
@@ -448,7 +450,7 @@ class TestApiKeyRouting:
         client.post(
             "/api/advice",
             json={"question": "How do I talk to my partner?"},
-            headers=API_KEY_HEADER,
+            cookies=SESSION_COOKIES,
         )
 
         mock_base.assert_called_once()

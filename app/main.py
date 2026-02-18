@@ -27,6 +27,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.routes.advice import router as advice_router
 from app.routes.conversations import router as conversations_router
+from app.session import router as session_router
 
 
 def get_version() -> str:
@@ -58,9 +59,9 @@ if ALLOWED_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=ALLOWED_ORIGINS,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type", "X-OpenAI-API-Key"],
+        allow_headers=["Content-Type"],
     )
 
 
@@ -89,6 +90,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # Include API routes
 app.include_router(advice_router, prefix="/api")
 app.include_router(conversations_router, prefix="/api")
+app.include_router(session_router, prefix="/api")
 
 
 @app.get("/")

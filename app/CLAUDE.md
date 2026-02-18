@@ -15,10 +15,12 @@ The front-end uses a **server-side rendered architecture** with:
 ```
 app/
 ├── main.py                 # FastAPI app entry point, static/template mounting
+├── session.py              # Encrypted session management (Fernet + httpOnly cookies)
 ├── CLAUDE.md               # This file
 ├── routes/
 │   ├── __init__.py
-│   └── advice.py           # API routes (/api/advice, /api/advice/html)
+│   ├── advice.py           # API routes (/api/advice, /api/advice/html)
+│   └── conversations.py    # Conversation persistence routes
 ├── templates/
 │   ├── base.html           # Base layout with sidebar and modal
 │   └── index.html          # Main page with form and response area
@@ -27,6 +29,7 @@ app/
     │   ├── input.css       # Tailwind source (directives + custom components)
     │   └── styles.css      # Compiled Tailwind CSS
     └── js/
+        ├── api-key.js      # API key UI (server-side session flow)
         └── sessions.js     # Session/history management (localStorage)
 ```
 
@@ -36,7 +39,14 @@ app/
 - FastAPI app initialization
 - Mounts static files at `/static`
 - Configures Jinja2 templates
-- Includes advice router
+- Includes advice, conversations, and session routers
+
+### `session.py`
+- Fernet encryption/decryption for API keys
+- `POST /api/session` - Store API key in encrypted httpOnly cookie
+- `GET /api/session/status` - Check if session exists (without exposing key)
+- `DELETE /api/session` - Clear session (logout)
+- `require_api_key(request)` - Shared helper used by advice and conversation routes
 
 ### `routes/advice.py`
 - `POST /api/advice` - JSON API endpoint
@@ -85,6 +95,14 @@ The form uses HTMX for dynamic submission:
       hx-swap="innerHTML"
       hx-indicator="#loading-indicator">
 ```
+
+## API Key Security
+
+User API keys are stored server-side in encrypted httpOnly cookies:
+- User submits key via modal -> `POST /api/session` -> Fernet-encrypted httpOnly cookie
+- All subsequent requests include the cookie automatically (no JS access)
+- Cookie attributes: `httpOnly`, `Secure` (over HTTPS), `SameSite=Strict`
+- Encryption key set via `SESSION_SECRET` env var (Fernet key)
 
 ## Session Storage
 

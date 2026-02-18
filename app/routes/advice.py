@@ -7,7 +7,7 @@ import html
 import os
 import time
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, HTTPException, Form, Header, Request
+from fastapi import APIRouter, HTTPException, Form, Request
 from fastapi.responses import HTMLResponse
 from openai import OpenAI, AuthenticationError
 from slowapi import Limiter
@@ -19,6 +19,7 @@ from models.prompts import (
     ADVICE_COLUMNIST_SYSTEM_PROMPT_EXTENDED,
 )
 from qa.mvp_utils import extract_revised_response
+from app.session import require_api_key
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -214,22 +215,11 @@ def call_fine_tuned_model(question: str, draft_response: str, api_key: str) -> s
         raise RuntimeError(f"Failed to get response from fine-tuned model: {e}")
 
 
-def _get_api_key(header_key: str | None) -> str:
-    """Extract and validate the API key from the request header or raise an error."""
-    if not header_key:
-        raise HTTPException(
-            status_code=401,
-            detail="OpenAI API key is required. Please enter your API key in the settings.",
-        )
-    return header_key
-
-
 @router.post("/advice", response_model=AdviceResponse)
 @limiter.limit("10/minute")
 async def get_advice(
     request: Request,
     body: AdviceRequest,
-    x_openai_api_key: str | None = Header(None),
 ) -> AdviceResponse:
     """
     Get advice for an interpersonal question.
@@ -241,7 +231,7 @@ async def get_advice(
     4. If using the owner's key, fine-tuned model revises the response
     5. Otherwise, returns the base model response directly
     """
-    api_key = _get_api_key(x_openai_api_key)
+    api_key = require_api_key(request)
     question = body.question.strip()
 
     if not question:
@@ -294,7 +284,6 @@ async def get_advice(
 async def get_advice_html(
     request: Request,
     question: str = Form(...),
-    x_openai_api_key: str | None = Header(None),
 ) -> HTMLResponse:
     """
     Get advice as HTML fragment (for HTMX).
@@ -304,7 +293,7 @@ async def get_advice_html(
     """
     try:
         advice_body = AdviceRequest(question=question)
-        response = await get_advice(request, advice_body, x_openai_api_key)
+        response = await get_advice(request, advice_body)
         # Escape HTML to prevent XSS, then convert newlines to <br>
         safe_answer = html.escape(response.answer).replace("\n", "<br>")
         model_note = " (fine-tuned)" if response.used_fine_tuned else ""

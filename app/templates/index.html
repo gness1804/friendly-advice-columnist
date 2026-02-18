@@ -10,7 +10,7 @@
         <div>
             <p class="text-text font-medium">OpenAI API Key Required</p>
             <p class="text-text-muted text-sm mt-1">
-                This app uses a "bring your own key" model. Your key is stored locally in your browser and sent directly to OpenAI.
+                This app uses a "bring your own key" model. Your key is stored securely on the server and never exposed to browser JavaScript.
             </p>
             <button onclick="ApiKeyUI.showModal()" class="mt-2 text-sm text-primary hover:text-primary-hover underline">
                 Set your API key
@@ -104,9 +104,9 @@
         }
     }
 
-    // Check on load and after modal closes
-    document.addEventListener('DOMContentLoaded', checkApiKeyPrompt);
-    // Re-check when the API key modal is hidden
+    // Re-check after the async session status check completes
+    document.addEventListener('apiKeyStatusReady', checkApiKeyPrompt);
+    // Re-check when the API key modal is hidden (after save/logout)
     const observer = new MutationObserver(checkApiKeyPrompt);
     const apiKeyModal = document.getElementById('api-key-modal');
     if (apiKeyModal) {

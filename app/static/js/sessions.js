@@ -182,7 +182,7 @@ const SessionManager = {
 
         try {
             const response = await fetch('/api/conversations', {
-                headers: { 'X-OpenAI-API-Key': ApiKeyManager.getKey() }
+                credentials: 'same-origin'
             });
 
             if (!response.ok) return;
@@ -217,20 +217,13 @@ const SessionManager = {
 
     // --- DynamoDB sync helpers (fire-and-forget) ---
 
-    _getHeaders() {
-        const headers = { 'Content-Type': 'application/json' };
-        if (typeof ApiKeyManager !== 'undefined' && ApiKeyManager.hasKey()) {
-            headers['X-OpenAI-API-Key'] = ApiKeyManager.getKey();
-        }
-        return headers;
-    },
-
     _syncSave(session) {
         if (typeof ApiKeyManager === 'undefined' || !ApiKeyManager.hasKey()) return;
 
         fetch('/api/conversations', {
             method: 'POST',
-            headers: this._getHeaders(),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 session_id: session.id,
                 question: session.question,
@@ -245,7 +238,7 @@ const SessionManager = {
 
         fetch(`/api/conversations/${sessionId}`, {
             method: 'DELETE',
-            headers: this._getHeaders()
+            credentials: 'same-origin'
         }).catch(e => console.error('Failed to sync delete:', e));
     },
 
@@ -254,7 +247,7 @@ const SessionManager = {
 
         fetch('/api/conversations', {
             method: 'DELETE',
-            headers: this._getHeaders()
+            credentials: 'same-origin'
         }).catch(e => console.error('Failed to sync delete all:', e));
     }
 };
