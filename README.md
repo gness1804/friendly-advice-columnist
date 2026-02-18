@@ -93,7 +93,7 @@ python qa/run_inference.py --prompt 'QUESTION: ...' --model_type openai_backend 
 
 ### Deployment (AWS)
 
-The app deploys to AWS App Runner with DynamoDB for conversation persistence. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full details.
+The app deploys to AWS App Runner with DynamoDB for conversation persistence. For WAF/DDoS protection, associate an AWS WAF Web ACL directly with the App Runner service. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full details.
 
 ```bash
 # Dry run
