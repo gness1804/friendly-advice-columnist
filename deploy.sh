@@ -14,6 +14,8 @@
 # Required environment variables (set in .env or export before running):
 #   OWNER_API_KEY_HASH    - SHA-256 hash of the owner's OpenAI API key
 #   ECR_REGISTRY          - Full ECR registry URI (e.g. 123456.dkr.ecr.us-east-2.amazonaws.com/my-repo)
+#   SESSION_SECRET        - Fernet key for encrypting API key session cookies
+#                           Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 #
 # Optional environment variables:
 #   AWS_REGION            - AWS region (default: us-east-2)
@@ -206,6 +208,11 @@ if [ -z "${OWNER_API_KEY_HASH:-}" ]; then
     echo "Generate it with: python -c \"import hashlib; print(hashlib.sha256(b'your-api-key').hexdigest())\""
 fi
 
+if [ -z "${SESSION_SECRET:-}" ]; then
+    echo "WARNING: SESSION_SECRET is not set. A random key will be generated (sessions won't survive restarts)."
+    echo "Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+fi
+
 SERVICE_EXISTS=$(aws apprunner list-services --region "${AWS_REGION}" --query "ServiceSummaryList[?ServiceName=='${APP_NAME}'].ServiceArn" --output text 2>/dev/null || echo "")
 
 if [ -z "$SERVICE_EXISTS" ]; then
@@ -226,7 +233,8 @@ if [ -z "$SERVICE_EXISTS" ]; then
                         \"OWNER_API_KEY_HASH\": \"${OWNER_API_KEY_HASH:-}\",
                         \"DYNAMODB_TABLE\": \"${DYNAMODB_TABLE}\",
                         \"AWS_REGION\": \"${AWS_REGION}\",
-                        \"ALLOWED_ORIGINS\": \"${CUSTOM_DOMAIN:-}\"
+                        \"ALLOWED_ORIGINS\": \"${CUSTOM_DOMAIN:-}\",
+                        \"SESSION_SECRET\": \"${SESSION_SECRET:-}\"
                     }
                 }
             },
@@ -264,7 +272,8 @@ else
                         \"OWNER_API_KEY_HASH\": \"${OWNER_API_KEY_HASH:-}\",
                         \"DYNAMODB_TABLE\": \"${DYNAMODB_TABLE}\",
                         \"AWS_REGION\": \"${AWS_REGION}\",
-                        \"ALLOWED_ORIGINS\": \"${CUSTOM_DOMAIN:-}\"
+                        \"ALLOWED_ORIGINS\": \"${CUSTOM_DOMAIN:-}\",
+                        \"SESSION_SECRET\": \"${SESSION_SECRET:-}\"
                     }
                 }
             },

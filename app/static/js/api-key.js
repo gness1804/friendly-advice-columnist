@@ -1,41 +1,84 @@
 /**
  * API Key management for Friendly Advice Columnist.
- * Handles storing, retrieving, and injecting the user's OpenAI API key.
+ *
+ * Stores the API key server-side in an encrypted httpOnly cookie via
+ * POST /api/session.  The key is never held in localStorage or accessible
+ * to client-side JavaScript after the initial submission.
  */
 
 const ApiKeyManager = {
-    STORAGE_KEY: 'friendly_advice_api_key',
+    /** Whether the server has confirmed an active session. */
+    _hasSession: false,
+    /** Masked key hint returned by the server (e.g. "sk-abc...wxyz"). */
+    _maskedKey: '',
 
     /**
-     * Get the stored API key from localStorage.
+     * Check session status with the server on page load.
+     * Returns a promise that resolves to true/false.
      */
-    getKey() {
-        return localStorage.getItem(this.STORAGE_KEY) || '';
-    },
-
-    /**
-     * Save an API key to localStorage.
-     */
-    saveKey(key) {
-        if (key) {
-            localStorage.setItem(this.STORAGE_KEY, key);
-        } else {
-            localStorage.removeItem(this.STORAGE_KEY);
+    async checkStatus() {
+        try {
+            const res = await fetch('/api/session/status', { credentials: 'same-origin' });
+            if (!res.ok) {
+                this._hasSession = false;
+                this._maskedKey = '';
+                return false;
+            }
+            const data = await res.json();
+            this._hasSession = data.has_key;
+            this._maskedKey = data.masked_key || '';
+            return this._hasSession;
+        } catch {
+            this._hasSession = false;
+            this._maskedKey = '';
+            return false;
         }
     },
 
     /**
-     * Check if an API key is stored.
+     * Send the API key to the server for secure storage.
+     * Returns a promise resolving to { ok: true } or { ok: false, error: string }.
      */
-    hasKey() {
-        return !!this.getKey();
+    async saveKey(key) {
+        try {
+            const res = await fetch('/api/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ api_key: key }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                return { ok: false, error: data.detail || 'Failed to save API key.' };
+            }
+            this._hasSession = true;
+            this._maskedKey = key.length > 7 ? key.substring(0, 7) + '...' + key.slice(-4) : '';
+            return { ok: true };
+        } catch {
+            return { ok: false, error: 'Network error. Please try again.' };
+        }
     },
 
     /**
-     * Clear the stored API key.
+     * Clear the server-side session (logout).
      */
-    clearKey() {
-        localStorage.removeItem(this.STORAGE_KEY);
+    async clearKey() {
+        try {
+            await fetch('/api/session', {
+                method: 'DELETE',
+                credentials: 'same-origin',
+            });
+        } catch { /* ignore */ }
+        this._hasSession = false;
+        this._maskedKey = '';
+    },
+
+    hasKey() {
+        return this._hasSession;
+    },
+
+    getMaskedKey() {
+        return this._maskedKey;
     }
 };
 
@@ -43,13 +86,15 @@ const ApiKeyManager = {
  * API Key UI Manager
  */
 const ApiKeyUI = {
-    init() {
+    async init() {
         this.bindEvents();
-        this.updateSettingsIndicator();
-        this.setupHtmxHeaders();
 
-        // Show API key modal on first visit if no key stored
-        if (!ApiKeyManager.hasKey()) {
+        // Check server-side session status
+        const hasKey = await ApiKeyManager.checkStatus();
+        this.updateSettingsIndicator();
+
+        // Show modal on first visit if no session exists
+        if (!hasKey) {
             this.showModal();
         }
     },
@@ -58,6 +103,7 @@ const ApiKeyUI = {
         const settingsBtn = document.getElementById('settings-btn');
         const cancelBtn = document.getElementById('cancel-api-key-btn');
         const saveBtn = document.getElementById('save-api-key-btn');
+        const logoutBtn = document.getElementById('logout-api-key-btn');
         const backdrop = document.getElementById('api-key-modal-backdrop');
         const input = document.getElementById('api-key-input');
 
@@ -69,6 +115,9 @@ const ApiKeyUI = {
         }
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveKey());
+        }
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => this.logout());
         }
         if (backdrop) {
             backdrop.addEventListener('click', () => this.hideModal());
@@ -86,15 +135,28 @@ const ApiKeyUI = {
         const modal = document.getElementById('api-key-modal');
         const input = document.getElementById('api-key-input');
         const status = document.getElementById('api-key-status');
+        const logoutBtn = document.getElementById('logout-api-key-btn');
 
         if (modal) {
             modal.classList.remove('hidden');
             if (input) {
-                input.value = ApiKeyManager.getKey();
+                // Don't pre-fill — the key is no longer accessible to JS
+                input.value = '';
+                input.placeholder = ApiKeyManager.hasKey()
+                    ? ApiKeyManager.getMaskedKey() || 'sk-... (key stored on server)'
+                    : 'sk-...';
                 input.focus();
             }
             if (status) {
                 status.classList.add('hidden');
+            }
+            // Show/hide logout button based on session state
+            if (logoutBtn) {
+                if (ApiKeyManager.hasKey()) {
+                    logoutBtn.classList.remove('hidden');
+                } else {
+                    logoutBtn.classList.add('hidden');
+                }
             }
         }
     },
@@ -106,10 +168,8 @@ const ApiKeyUI = {
         }
     },
 
-    saveKey() {
+    async saveKey() {
         const input = document.getElementById('api-key-input');
-        const status = document.getElementById('api-key-status');
-
         if (!input) return;
 
         const key = input.value.trim();
@@ -124,12 +184,35 @@ const ApiKeyUI = {
             return;
         }
 
-        ApiKeyManager.saveKey(key);
+        this.showStatus('Saving...', 'info');
+        const result = await ApiKeyManager.saveKey(key);
+
+        if (!result.ok) {
+            this.showStatus(result.error, 'error');
+            return;
+        }
+
+        // Clear the input immediately so the key isn't sitting in the DOM
+        input.value = '';
         this.updateSettingsIndicator();
-        this.showStatus('API key saved successfully.', 'success');
+        this.showStatus('API key saved securely.', 'success');
 
         setTimeout(() => {
             this.hideModal();
+        }, 1000);
+    },
+
+    async logout() {
+        await ApiKeyManager.clearKey();
+        this.updateSettingsIndicator();
+        this.showStatus('API key removed.', 'success');
+
+        setTimeout(() => {
+            this.hideModal();
+            // Re-check the prompt banner
+            if (typeof checkApiKeyPrompt === 'function') {
+                checkApiKeyPrompt();
+            }
         }, 1000);
     },
 
@@ -157,18 +240,6 @@ const ApiKeyUI = {
         } else {
             btn.title = 'API Key Settings (no key set)';
         }
-    },
-
-    /**
-     * Configure HTMX to send the API key header with every request.
-     */
-    setupHtmxHeaders() {
-        document.body.addEventListener('htmx:configRequest', function(evt) {
-            const key = ApiKeyManager.getKey();
-            if (key) {
-                evt.detail.headers['X-OpenAI-API-Key'] = key;
-            }
-        });
     }
 };
 

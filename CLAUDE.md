@@ -50,6 +50,7 @@ export OWNER_API_KEY_HASH="<hash>" && ./deploy.sh
 
 ### Key Environment Variables
 
+- `SESSION_SECRET`: Fernet key for encrypting API key session cookies (generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`)
 - `OWNER_API_KEY_HASH`: SHA-256 hash of the owner's OpenAI API key (for fine-tuned model routing)
 - `DYNAMODB_TABLE`: DynamoDB table name (default: "friendly-advice-conversations")
 - `AWS_REGION`: AWS region (default: "us-east-2")

@@ -57,6 +57,7 @@ The web interface provides:
 - Error messages for off-topic questions
 - Conversation history sidebar (persisted in localStorage and DynamoDB)
 - "Bring your own API key" model for multi-user support
+- Secure API key storage: keys are encrypted server-side in an httpOnly cookie (never stored in localStorage or accessible to browser JavaScript)
 
 ### Command Line Usage
 
@@ -100,7 +101,7 @@ The app deploys to AWS App Runner with DynamoDB for conversation persistence. Fo
 ./deploy.sh --dry-run
 
 # Full deployment
-export OWNER_API_KEY_HASH="<your-hash>" && ./deploy.sh
+export OWNER_API_KEY_HASH="<your-hash>" && export SESSION_SECRET="<fernet-key>" && ./deploy.sh
 ```
 
 ### Linting
@@ -118,6 +119,7 @@ friendly-advice-columnist/
 ├── CLAUDE.md              # Development guidance
 ├── app/                   # Web application (FastAPI)
 │   ├── main.py            # FastAPI app entry point
+│   ├── session.py         # Encrypted session management for API keys
 │   ├── dynamodb.py        # DynamoDB conversation persistence
 │   ├── routes/            # API endpoints
 │   ├── templates/         # Jinja2 HTML templates

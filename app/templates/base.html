@@ -120,7 +120,7 @@
         <div class="relative bg-surface-light border border-surface-lighter rounded-lg p-6 max-w-md mx-4">
             <h3 class="text-lg font-semibold text-text mb-2">API Key Settings</h3>
             <p class="text-text-muted mb-4 text-sm">
-                Enter your OpenAI API key. It is stored only in your browser's local storage and sent directly to OpenAI with each request.
+                Enter your OpenAI API key. It is stored securely on the server in an encrypted session cookie and is never accessible to browser JavaScript.
             </p>
             <div class="mb-4">
                 <label for="api-key-input" class="block text-text text-sm mb-1">OpenAI API Key</label>
@@ -133,13 +133,18 @@
                 >
             </div>
             <div id="api-key-status" class="mb-4 text-sm hidden"></div>
-            <div class="flex justify-end space-x-3">
-                <button id="cancel-api-key-btn" class="py-2 px-4 bg-surface border border-surface-lighter hover:bg-surface-lighter text-text rounded-md transition-colors text-sm">
-                    Cancel
+            <div class="flex justify-between">
+                <button id="logout-api-key-btn" class="hidden py-2 px-4 bg-surface border border-surface-lighter hover:bg-surface-lighter text-text-muted rounded-md transition-colors text-sm">
+                    Remove Key
                 </button>
-                <button id="save-api-key-btn" class="py-2 px-4 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors text-sm">
-                    Save
-                </button>
+                <div class="flex space-x-3 ml-auto">
+                    <button id="cancel-api-key-btn" class="py-2 px-4 bg-surface border border-surface-lighter hover:bg-surface-lighter text-text rounded-md transition-colors text-sm">
+                        Cancel
+                    </button>
+                    <button id="save-api-key-btn" class="py-2 px-4 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors text-sm">
+                        Save
+                    </button>
+                </div>
             </div>
         </div>
     </div>
