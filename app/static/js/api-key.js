@@ -89,6 +89,9 @@ const ApiKeyUI = {
     async init() {
         this.bindEvents();
 
+        // Clean up legacy localStorage key from pre-session versions
+        localStorage.removeItem('friendly_advice_api_key');
+
         // Check server-side session status (async)
         const hasKey = await ApiKeyManager.checkStatus();
         this.updateSettingsIndicator();

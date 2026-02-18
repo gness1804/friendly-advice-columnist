@@ -101,6 +101,7 @@ async def index(request: Request):
         "index.html",
         {
             "max_chars": 4000,
+            "app_version": app.version,
         },
     )
 
