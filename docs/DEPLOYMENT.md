@@ -56,7 +56,7 @@ aws apprunner list-services --region us-east-2 --query 'ServiceSummaryList[?Serv
 
 ## Custom Domain
 
-After the App Runner service is running:
+Associate a custom domain directly with App Runner:
 
 1. Associate your domain in the App Runner console or via CLI:
    ```bash
@@ -65,6 +65,46 @@ After the App Runner service is running:
 2. Add the provided CNAME records to your DNS provider
 3. Wait for certificate validation (can take up to 48 hours)
 4. Update `ALLOWED_ORIGINS` env var in the App Runner service to include your domain
+
+## WAF (Recommended)
+
+App Runner supports associating an AWS WAF Web ACL directly (no CloudFront required).
+
+### 1. Create and associate a Web ACL
+
+1. Open **App Runner** (region: `us-east-2`).
+2. Select the service (default: `friendly-advice-columnist`).
+3. Open the **Security** tab.
+4. Under **Web application firewall (AWS WAF)**, click **Associate web ACL**.
+5. Choose **Create web ACL** and fill in:
+   - Name: `friendly-advice-columnist-waf`
+   - Resource type: `App Runner`
+   - Scope: `Regional`
+   - Default action: `Allow`
+
+### 2. Add baseline managed rules
+
+Add these AWS Managed Rule Groups:
+- `AWSManagedRulesCommonRuleSet`
+- `AWSManagedRulesKnownBadInputsRuleSet`
+- `AWSManagedRulesAmazonIpReputationList`
+- `AWSManagedRulesAnonymousIpList`
+- `AWSManagedRulesSQLiRuleSet`
+
+### 3. Add a rate-based rule
+
+Add a rate-based rule to slow abusive clients:
+- Name: `RateLimit-IP`
+- Limit: `2000` requests per `5` minutes per IP (tune later)
+- Action: `Block`
+
+### 4. Verify
+
+1. Open **WAF & Shield** → **Web ACLs** → `friendly-advice-columnist-waf`.
+2. Confirm the App Runner service is listed under **Associated AWS resources**.
+3. Check **Monitoring** for request metrics.
+
+Optional: enable WAF logging to CloudWatch Logs or S3.
 
 ## Environment Variables
 
