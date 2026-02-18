@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Friendly Advice Columnist{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css?v={{ app_version | default('dev') }}">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     {% block head %}{% endblock %}
 </head>
@@ -149,8 +149,8 @@
         </div>
     </div>
 
-    <script src="/static/js/sessions.js"></script>
-    <script src="/static/js/api-key.js"></script>
+    <script src="/static/js/sessions.js?v={{ app_version | default('dev') }}"></script>
+    <script src="/static/js/api-key.js?v={{ app_version | default('dev') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
