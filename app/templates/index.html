@@ -104,9 +104,9 @@
         }
     }
 
-    // Check on load and after modal closes
-    document.addEventListener('DOMContentLoaded', checkApiKeyPrompt);
-    // Re-check when the API key modal is hidden
+    // Re-check after the async session status check completes
+    document.addEventListener('apiKeyStatusReady', checkApiKeyPrompt);
+    // Re-check when the API key modal is hidden (after save/logout)
     const observer = new MutationObserver(checkApiKeyPrompt);
     const apiKeyModal = document.getElementById('api-key-modal');
     if (apiKeyModal) {

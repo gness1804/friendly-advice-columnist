@@ -89,9 +89,12 @@ const ApiKeyUI = {
     async init() {
         this.bindEvents();
 
-        // Check server-side session status
+        // Check server-side session status (async)
         const hasKey = await ApiKeyManager.checkStatus();
         this.updateSettingsIndicator();
+
+        // Notify the page that the session status is now known
+        document.dispatchEvent(new Event('apiKeyStatusReady'));
 
         // Show modal on first visit if no session exists
         if (!hasKey) {
